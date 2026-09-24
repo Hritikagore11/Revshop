@@ -16,9 +16,14 @@ public class UserController {
         this.userService = userService;
     }
 
-    @PostMapping
-    public User addUser(@RequestBody User user) {
-        return userService.addUser(user);
+    @PostMapping("/register")
+    public User register(@RequestBody User user){
+        return userService.register(user);
+    }
+
+    @PostMapping("/login")
+    public User login(@RequestParam String email, @RequestParam String password){
+        return userService.login(email, password);
     }
 
     @GetMapping
@@ -29,6 +34,11 @@ public class UserController {
     @GetMapping("/{id}")
     public User getUserById(@PathVariable Long id) {
         return userService.getUserById(id);
+    }
+
+    @PutMapping("/{id}")
+    public User updateUser(@PathVariable Long id, @RequestBody User user){
+        return userService.updateUser(id, user);
     }
 
     @DeleteMapping("/{id}")
