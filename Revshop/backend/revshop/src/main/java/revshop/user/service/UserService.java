@@ -1,6 +1,8 @@
 package revshop.user.service;
 
 import org.springframework.stereotype.Service;
+import revshop.exception.DuplicateEmailException;
+import revshop.exception.UserNotFoundException;
 import revshop.user.repository.UserRepository;
 import revshop.user.model.User;
 
@@ -16,7 +18,7 @@ public class UserService {
 
     public User register(User user){
         if(userRepo.findByEmail(user.getEmail()).isPresent()){
-            throw new RuntimeException("Email already registered");
+            throw new DuplicateEmailException("Email already registered");
         }
 
         if(user.getRole() == null || (!user.getRole().equalsIgnoreCase("BUYER") && !user.getRole().equalsIgnoreCase("SELLER"))){
@@ -30,25 +32,24 @@ public class UserService {
         User user = userRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
         if(!user.getPassword().equals(password)){
-            throw new RuntimeException("Invalid email or password");
+            throw new DuplicateEmailException("Invalid email or password");
         }
         return user;
     }
     public User updateUser(Long id, User updatedUser){
-        User existingUser = userRepo.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        User existingUser = userRepo.findById(id).orElseThrow(() -> new UserNotFoundException("User not found"));
         existingUser.setName(updatedUser.getName());
         existingUser.setPhone(updatedUser.getPhone());
         existingUser.setAddress(updatedUser.getAddress());
         return userRepo.save(existingUser);
     }
 
-
     public List<User> getAllUsers() {
         return userRepo.findAll();
     }
 
     public User getUserById(Long id) {
-        return userRepo.findById(id).orElse(null);
+        return userRepo.findById(id).orElseThrow(() -> new UserNotFoundException("User not found"));
     }
 
     public void deleteUser(Long id) {

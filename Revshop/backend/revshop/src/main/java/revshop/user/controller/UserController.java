@@ -1,5 +1,6 @@
 package revshop.user.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import revshop.user.model.User;
 import revshop.user.service.UserService;
@@ -17,7 +18,7 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public User register(@RequestBody User user){
+    public User register(@Valid @RequestBody User user){
         return userService.register(user);
     }
 
