@@ -37,6 +37,19 @@ public class CartController {
         );
     }
 
+    @PutMapping("/items/{itemId}")
+    public ResponseEntity<CartItem> updateItem(
+            @PathVariable Long itemId,
+            @RequestBody CartItem cartItem){
+
+        CartItem updatedItem = cartService.updateItem(
+                itemId,
+                cartItem.getQuantity()
+        );
+
+        return ResponseEntity.ok(updatedItem);
+    }
+
     @DeleteMapping("/items/{itemId}")
     public ResponseEntity<Void> removeItem(
             @PathVariable Long itemId) {
@@ -45,4 +58,5 @@ public class CartController {
 
         return ResponseEntity.noContent().build();
     }
+
 }
