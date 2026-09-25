@@ -3,6 +3,7 @@ package com.revshop.revshop.service;
 import com.revshop.revshop.model.Product;
 import com.revshop.revshop.model.Review;
 import com.revshop.revshop.repository.ProductRepository;
+import com.revshop.revshop.repository.ReviewRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
