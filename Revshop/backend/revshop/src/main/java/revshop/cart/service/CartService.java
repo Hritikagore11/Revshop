@@ -72,6 +72,19 @@ public class CartService {
                 .toList();
     }
 
+    public Double getCartTotal(Long userId) {
+
+        List<CartItem> cartItems = cartItemRepository.findByUserId(userId);
+
+        double total = 0;
+
+        for (CartItem item : cartItems) {
+            total += item.getProduct().getPrice() * item.getQuantity();
+        }
+
+        return total;
+    }
+
     public CartItem updateItem(Long itemId, Integer quantity) {
 
         CartItem existingItem = cartItemRepository.findById(itemId)
@@ -93,5 +106,12 @@ public class CartService {
         }
 
         cartItemRepository.deleteById(itemId);
+    }
+
+    public void clearCart(Long userId) {
+
+        List<CartItem> cartItems = cartItemRepository.findByUserId(userId);
+
+        cartItemRepository.deleteAll(cartItems);
     }
 }

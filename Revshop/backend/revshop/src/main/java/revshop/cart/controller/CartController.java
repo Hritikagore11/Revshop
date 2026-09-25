@@ -37,6 +37,15 @@ public class CartController {
         );
     }
 
+    @GetMapping("/{userId}/total")
+    public ResponseEntity<Double> getCartTotal(
+            @PathVariable Long userId) {
+
+        return ResponseEntity.ok(
+                cartService.getCartTotal(userId)
+        );
+    }
+
     @PutMapping("/items/{itemId}")
     public ResponseEntity<CartItem> updateItem(
             @PathVariable Long itemId,
@@ -55,6 +64,15 @@ public class CartController {
             @PathVariable Long itemId) {
 
         cartService.removeItem(itemId);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{userId}/clear")
+    public ResponseEntity<Void> clearCart(
+            @PathVariable Long userId) {
+
+        cartService.clearCart(userId);
 
         return ResponseEntity.noContent().build();
     }
