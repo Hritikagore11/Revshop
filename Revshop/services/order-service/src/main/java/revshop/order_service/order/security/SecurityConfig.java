@@ -21,7 +21,9 @@ public class SecurityConfig {
             HttpSecurity http) throws Exception {
 
         http
+
                 .csrf(csrf -> csrf.disable())
+
 
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
@@ -30,6 +32,7 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/orders/**").permitAll()
                         .anyRequest().authenticated()
                 )
 
