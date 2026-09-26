@@ -1,5 +1,6 @@
 package revshop.order_service.order.service;
 
+import org.aspectj.weaver.ast.Or;
 import org.springframework.stereotype.Service;
 import revshop.order_service.order.model.Order;
 import revshop.order_service.order.model.OrderItem;
@@ -60,5 +61,12 @@ public class OrderService {
 
     public List<OrderItem> getOrderItems(Long orderId) {
         return orderItemRepository.findByOrderId(orderId);
+    }
+
+    public Order updateOrderStatus(Long orderId, String status){
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
+
+        order.setStatus(status);
+        return orderRepository.save(order);
     }
 }
