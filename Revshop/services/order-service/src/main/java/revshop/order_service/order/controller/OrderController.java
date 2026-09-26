@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.*;
 import revshop.order_service.order.model.Order;
 import revshop.order_service.order.model.OrderItem;
 import revshop.order_service.order.service.OrderService;
-
+import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 
 @RestController
@@ -19,6 +19,7 @@ public class OrderController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('BUYER')")
     public ResponseEntity<Order> createOrder(
             @RequestParam Long userId,
             @RequestParam Double totalAmount) {
@@ -29,6 +30,7 @@ public class OrderController {
     }
 
     @GetMapping("/user/{userId}")
+    @PreAuthorize("hasRole('BUYER')")
     public ResponseEntity<List<Order>> getOrdersByUser(
             @PathVariable Long userId) {
 
@@ -38,6 +40,7 @@ public class OrderController {
     }
 
     @GetMapping("/{orderId}")
+    @PreAuthorize("hasRole('BUYER')")
     public ResponseEntity<Order> getOrderById(
             @PathVariable Long orderId) {
 
@@ -47,6 +50,7 @@ public class OrderController {
     }
 
     @PostMapping("/{orderId}/items")
+    @PreAuthorize("hasRole('BUYER')")
     public ResponseEntity<OrderItem> addOrderItem(
             @PathVariable Long orderId,
             @RequestParam Long productId,
@@ -64,6 +68,7 @@ public class OrderController {
     }
 
     @GetMapping("/{orderId}/items")
+    @PreAuthorize("hasRole('BUYER')")
     public ResponseEntity<List<OrderItem>> getOrderItems(
             @PathVariable Long orderId) {
 
@@ -73,6 +78,7 @@ public class OrderController {
     }
 
     @PutMapping("/{orderId}/status")
+    @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<Order> updateOrderStatus(@PathVariable long orderId, @RequestParam String status){
         return ResponseEntity.ok(orderService.updateOrderStatus(orderId, status));
     }

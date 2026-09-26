@@ -1,5 +1,5 @@
 package revshop.user_service.user.service;
-
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import revshop.user_service.security.JwtService;
@@ -85,5 +85,24 @@ public class UserService {
 
     public void deleteUser(Long id) {
         userRepo.deleteById(id);
+    }
+    public User getProfile(Authentication authentication) {
+
+        User user = (User) authentication.getPrincipal();
+
+        return userRepo.findById(user.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+    public User updateProfile(
+            Authentication authentication,
+            User updatedUser) {
+
+        User existingUser = (User) authentication.getPrincipal();
+
+        existingUser.setName(updatedUser.getName());
+        existingUser.setPhone(updatedUser.getPhone());
+        existingUser.setAddress(updatedUser.getAddress());
+
+        return userRepo.save(existingUser);
     }
 }

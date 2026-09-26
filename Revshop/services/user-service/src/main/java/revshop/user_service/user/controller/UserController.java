@@ -1,5 +1,5 @@
 package revshop.user_service.user.controller;
-
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import revshop.user_service.user.model.User;
 import revshop.user_service.user.service.UserService;
@@ -48,5 +48,16 @@ public class UserController {
     public String deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return "User deleted successfully";
+    }
+    @GetMapping("/profile")
+    public User getProfile(Authentication authentication) {
+        return userService.getProfile(authentication);
+    }
+    @PutMapping("/profile")
+    public User updateProfile(
+            @RequestBody User user,
+            Authentication authentication) {
+
+        return userService.updateProfile(authentication, user);
     }
 }
