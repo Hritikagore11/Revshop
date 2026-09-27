@@ -1,4 +1,4 @@
-package revshop.cart_service.cart.dto;
+package revshop.order_service.order.dto;
 
 public class ProductResponse {
 

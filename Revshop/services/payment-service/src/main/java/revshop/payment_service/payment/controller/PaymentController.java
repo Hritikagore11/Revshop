@@ -38,4 +38,31 @@ public class PaymentController {
                 paymentService.getPayment(id)
         );
     }
+    @GetMapping("/order/{orderId}")
+    public ResponseEntity<Payment> getPaymentByOrderId(
+            @PathVariable Long orderId) {
+
+        return ResponseEntity.ok(
+                paymentService.getPaymentByOrderId(orderId)
+        );
+    }
+
+    @GetMapping("/order/{orderId}/status")
+    public ResponseEntity<String> getPaymentStatus(
+            @PathVariable Long orderId) {
+
+        return ResponseEntity.ok(
+                paymentService.getPaymentStatus(orderId)
+        );
+    }
+
+    @PutMapping("/order/{orderId}/status")
+    public ResponseEntity<Payment> updatePaymentStatus(
+            @PathVariable Long orderId,
+            @RequestParam String status) {
+
+        return ResponseEntity.ok(
+                paymentService.updatePaymentStatus(orderId, status)
+        );
+    }
 }

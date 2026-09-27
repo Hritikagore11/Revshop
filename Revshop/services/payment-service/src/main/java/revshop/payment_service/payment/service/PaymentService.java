@@ -41,4 +41,30 @@ public class PaymentService {
                 .orElseThrow(() ->
                         new RuntimeException("Payment not found"));
     }
+    public Payment getPaymentByOrderId(Long orderId) {
+
+        return paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() ->
+                        new RuntimeException("Payment not found for this order"));
+    }
+
+    public String getPaymentStatus(Long orderId) {
+
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() ->
+                        new RuntimeException("Payment not found for this order"));
+
+        return payment.getStatus();
+    }
+
+    public Payment updatePaymentStatus(Long orderId, String status) {
+
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() ->
+                        new RuntimeException("Payment not found for this order"));
+
+        payment.setStatus(status);
+
+        return paymentRepository.save(payment);
+    }
 }

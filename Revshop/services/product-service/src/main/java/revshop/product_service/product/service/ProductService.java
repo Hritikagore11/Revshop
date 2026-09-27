@@ -1,6 +1,8 @@
 package revshop.product_service.product.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import revshop.product_service.product.model.Product;
 import revshop.product_service.product.repository.ProductRepository;
 
@@ -33,13 +35,23 @@ public class ProductService {
 
     public Product getProductById(Long id) {
         return productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Product not found"
+                        )
+                );
     }
 
     public Product updateProduct(Long id, Product product) {
 
         Product existingProduct = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Product not found"
+                        )
+                );
 
         existingProduct.setName(product.getName());
         existingProduct.setDescription(product.getDescription());
@@ -55,7 +67,10 @@ public class ProductService {
     public void deleteProduct(Long id) {
 
         if (!productRepository.existsById(id)) {
-            throw new RuntimeException("Product not found");
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Product not found"
+            );
         }
 
         productRepository.deleteById(id);
@@ -64,7 +79,12 @@ public class ProductService {
     public Product reduceStock(Long productId, Integer quantity) {
 
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Product not found"
+                        )
+                );
 
         if (quantity == null || quantity <= 0) {
             throw new RuntimeException("Invalid quantity");

@@ -14,9 +14,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    public SecurityConfig(
-            JwtAuthenticationFilter jwtAuthenticationFilter) {
-
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
@@ -32,6 +30,9 @@ public class SecurityConfig {
                                 SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
+                        // Internal service-to-service endpoints validate
+                        // X-Internal-Key inside ProductController.
+                        .requestMatchers("/api/products/internal/**").permitAll()
 
                         .requestMatchers(
                                 "/api/products",

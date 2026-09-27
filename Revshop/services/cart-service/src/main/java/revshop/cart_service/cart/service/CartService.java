@@ -1,13 +1,22 @@
 package revshop.cart_service.cart.service;
+
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+import revshop.cart_service.cart.dto.ProductResponse;
 import revshop.cart_service.cart.model.Cart;
 import revshop.cart_service.cart.model.CartItem;
 import revshop.cart_service.cart.model.Product;
 import revshop.cart_service.cart.repository.CartItemRepository;
 import revshop.cart_service.cart.repository.CartRepository;
-import revshop.cart_service.cart.dto.ProductResponse;
+
 import java.util.List;
 
 @Service
@@ -16,22 +25,53 @@ public class CartService {
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final RestTemplate restTemplate;
+
     @Value("${product.service.url}")
     private String productServiceUrl;
 
+    @Value("${product.internal.key}")
+    private String productInternalKey;
+
     public CartService(
             CartRepository cartRepository,
-            CartItemRepository cartItemRepository, RestTemplate restTemplate) {
+            CartItemRepository cartItemRepository,
+            RestTemplate restTemplate) {
 
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
         this.restTemplate = restTemplate;
     }
 
-    public CartItem addItem(Long userId, Long productId, Integer quantity) {
+    public Long getAuthenticatedUserId(Authentication authentication) {
+        if (authentication == null || authentication.getDetails() == null) {
+            throw new RuntimeException("User is not authenticated");
+        }
+
+        Object details = authentication.getDetails();
+        if (!(details instanceof Long userId)) {
+            throw new RuntimeException("Unable to identify authenticated user");
+        }
+
+        return userId;
+    }
+
+    public CartItem addItem(
+            Long userId,
+            Long productId,
+            Integer quantity) {
+
+        if (productId == null) {
+            throw new RuntimeException("Product ID is required");
+        }
 
         if (quantity == null || quantity <= 0) {
             throw new RuntimeException("Invalid quantity");
+        }
+
+        Product product = getProduct(productId);
+
+        if (product.getQuantity() != null && quantity > product.getQuantity()) {
+            throw new RuntimeException("Insufficient stock");
         }
 
         Cart cart = cartRepository.findByUserId(userId)
@@ -41,70 +81,71 @@ public class CartService {
                     return cartRepository.save(newCart);
                 });
 
-        CartItem cartItem = new CartItem();
+        CartItem cartItem = cartItemRepository
+                .findByCartIdAndProductId(cart.getId(), productId)
+                .orElseGet(CartItem::new);
+
         cartItem.setCart(cart);
         cartItem.setProductId(productId);
-        cartItem.setQuantity(quantity);
+
+        int newQuantity = (cartItem.getId() == null ? 0 : cartItem.getQuantity()) + quantity;
+
+        if (product.getQuantity() != null && newQuantity > product.getQuantity()) {
+            throw new RuntimeException("Insufficient stock");
+        }
+
+        cartItem.setQuantity(newQuantity);
 
         return cartItemRepository.save(cartItem);
     }
 
     public List<CartItem> getCartItems(Long userId) {
 
-        Cart cart = cartRepository.findByUserId(userId)
-                .orElseThrow(() ->
-                        new RuntimeException("Cart not found"));
-
-        return cartItemRepository.findAll()
-                .stream()
-                .filter(item ->
-                        item.getCart().getId().equals(cart.getId()))
-                .toList();
+        return cartRepository.findByUserId(userId)
+                .map(cart -> cartItemRepository.findByCartId(cart.getId()))
+                .orElseGet(List::of);
     }
 
-    public void removeItem(Long itemId) {
+    public void removeItem(Long itemId, Long userId) {
 
-        if (!cartItemRepository.existsById(itemId)) {
-            throw new RuntimeException("Cart item not found");
-        }
-
-        cartItemRepository.deleteById(itemId);
+        CartItem existingItem = getOwnedCartItem(itemId, userId);
+        cartItemRepository.delete(existingItem);
     }
 
-    public CartItem updateItem(Long itemId, Integer quantity){
-        CartItem existingItem = cartItemRepository.findById(itemId).orElseThrow(() -> new RuntimeException("Cart item not found"));
+    public CartItem updateItem(
+            Long itemId,
+            Integer quantity,
+            Long userId) {
 
-        if(quantity == null || quantity <=0){
+        if (quantity == null || quantity <= 0) {
             throw new RuntimeException("Quantity must be greater than 0");
         }
+
+        CartItem existingItem = getOwnedCartItem(itemId, userId);
+
+        Product product = getProduct(existingItem.getProductId());
+
+        if (product.getQuantity() != null && quantity > product.getQuantity()) {
+            throw new RuntimeException("Insufficient stock");
+        }
+
         existingItem.setQuantity(quantity);
         return cartItemRepository.save(existingItem);
     }
 
-    public Double getCartTotal(Long userId) {
+    public Double getCartTotal(Long userId, String authorizationHeader) {
 
         List<CartItem> cartItems = getCartItems(userId);
-
-        double total = 0;
+        double total = 0.0;
 
         for (CartItem item : cartItems) {
+            Product product = getProduct(item.getProductId(), authorizationHeader);
 
-            String url = productServiceUrl
-                    + "/api/products/"
-                    + item.getProductId();
+            double price = product.getPrice() != null ? product.getPrice() : 0.0;
+            double discount = product.getDiscount() != null ? product.getDiscount() : 0.0;
+            double finalPrice = price - (price * discount / 100.0);
 
-            Product product = restTemplate.getForObject(
-                    url,
-                    Product.class
-            );
-
-            if (product == null) {
-                throw new RuntimeException(
-                        "Product not found: " + item.getProductId()
-                );
-            }
-
-            total += product.getPrice() * item.getQuantity();
+            total += finalPrice * item.getQuantity();
         }
 
         return total;
@@ -112,17 +153,58 @@ public class CartService {
 
     public void clearCart(Long userId) {
 
-        Cart cart = cartRepository.findByUserId(userId)
-                .orElseThrow(() ->
-                        new RuntimeException("Cart not found"));
-
-        List<CartItem> cartItems = cartItemRepository.findAll()
-                .stream()
-                .filter(item ->
-                        item.getCart().getId().equals(cart.getId()))
-                .toList();
-
-        cartItemRepository.deleteAll(cartItems);
+        cartRepository.findByUserId(userId).ifPresent(cart ->
+                cartItemRepository.deleteAll(
+                        cartItemRepository.findByCartId(cart.getId())
+                )
+        );
     }
 
+    private CartItem getOwnedCartItem(Long itemId, Long userId) {
+
+        CartItem item = cartItemRepository.findById(itemId)
+                .orElseThrow(() ->
+                        new RuntimeException("Cart item not found"));
+
+        if (item.getCart() == null ||
+                !userId.equals(item.getCart().getUserId())) {
+            throw new RuntimeException("You are not authorized to modify this cart item");
+        }
+
+        return item;
+    }
+
+    private Product getProduct(Long productId) {
+        return getProduct(productId, null);
+    }
+
+    private Product getProduct(Long productId, String authorizationHeader) {
+
+        String url = productServiceUrl + "/api/products/internal/" + productId;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Internal-Key", productInternalKey);
+
+        if (authorizationHeader != null && !authorizationHeader.isBlank()) {
+            headers.set("Authorization", authorizationHeader);
+        }
+
+        try {
+            ResponseEntity<Product> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    new HttpEntity<>(headers),
+                    Product.class
+            );
+
+            Product product = response.getBody();
+            if (product == null) {
+                throw new RuntimeException("Product not found: " + productId);
+            }
+
+            return product;
+        } catch (RestClientException e) {
+            throw new RuntimeException("Product not found: " + productId);
+        }
+    }
 }

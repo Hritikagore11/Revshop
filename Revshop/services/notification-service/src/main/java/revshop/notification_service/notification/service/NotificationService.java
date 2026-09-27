@@ -37,4 +37,34 @@ public class NotificationService {
 
         return notificationRepository.save(notification);
     }
+    public List<Notification> getUnreadNotifications(Long userId) {
+        return notificationRepository.findByUserIdAndIsReadFalse(userId);
+    }
+    public List<Notification> getNotificationsByType(
+            Long userId,
+            String type) {
+
+        return notificationRepository.findByUserIdAndType(
+                userId,
+                type
+        );
+    }
+    public List<Notification> markAllAsRead(Long userId) {
+
+        List<Notification> notifications =
+                notificationRepository.findByUserId(userId);
+
+        for (Notification notification : notifications) {
+            notification.setIsRead(true);
+        }
+
+        return notificationRepository.saveAll(notifications);
+    }
+    public Notification getNotificationById(Long notificationId) {
+        return notificationRepository.findById(notificationId)
+                .orElseThrow(() ->
+                        new RuntimeException("Notification not found"));
+    }
+
+
 }
