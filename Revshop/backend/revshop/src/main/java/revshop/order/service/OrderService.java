@@ -120,4 +120,32 @@ public class OrderService {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
     }
+
+    public Order checkout(Long userId) {
+
+        // Create order from user's cart
+        Order order = createOrder(userId);
+
+        return order;
+    }
+
+    public Order updateOrderStatus(Long orderId, String status) {
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        order.setStatus(status);
+
+        return orderRepository.save(order);
+    }
+
+    public Order cancelOrder(Long orderId) {
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        order.setStatus("CANCELLED");
+
+        return orderRepository.save(order);
+    }
 }

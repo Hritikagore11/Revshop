@@ -26,12 +26,40 @@ public class OrderController {
         );
     }
 
+    @PostMapping("/checkout/{userId}")
+    public ResponseEntity<Order> checkout(
+            @PathVariable Long userId) {
+
+        return ResponseEntity.ok(
+                orderService.checkout(userId)
+        );
+    }
+
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Order>> getOrdersByUser(
             @PathVariable Long userId) {
 
         return ResponseEntity.ok(
                 orderService.getOrdersByUser(userId)
+        );
+    }
+
+    @PutMapping("/{orderId}/status")
+    public ResponseEntity<Order> updateOrderStatus(
+            @PathVariable Long orderId,
+            @RequestParam String status) {
+
+        return ResponseEntity.ok(
+                orderService.updateOrderStatus(orderId, status)
+        );
+    }
+
+    @PutMapping("/{orderId}/cancel")
+    public ResponseEntity<Order> cancelOrder(
+            @PathVariable Long orderId) {
+
+        return ResponseEntity.ok(
+                orderService.cancelOrder(orderId)
         );
     }
 
