@@ -5,42 +5,33 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="15d6062e-77cd-4033-aa7a-30cb0e99dde7" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Revshop/services/cart-service/src/main/java/revshop/cart_service/cart/security/JwtAuthenticationFilter.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Revshop/services/cart-service/src/main/java/revshop/cart_service/cart/security/JwtService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Revshop/services/notification-service/src/main/java/revshop/notification_service/notification/Security/JwtAuthenticationFilter.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Revshop/services/notification-service/src/main/java/revshop/notification_service/notification/Security/JwtService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Revshop/services/order-service/src/main/java/revshop/order_service/order/config/RestTemplateConfig.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Revshop/services/order-service/src/main/java/revshop/order_service/order/dto/CartItemResponse.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Revshop/services/order-service/src/main/java/revshop/order_service/order/dto/CheckoutRequest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Revshop/services/order-service/src/main/java/revshop/order_service/order/dto/PaymentResponse.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Revshop/services/order-service/src/main/java/revshop/order_service/order/dto/ProductResponse.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Revshop/services/payment-service/src/main/java/revshop/payment_service/payment/security/JwtAuthenticationFilter.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Revshop/services/payment-service/src/main/java/revshop/payment_service/payment/security/JwtService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Revshop/services/api-gateway/src/main/resources/application-docker.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Revshop/services/cart-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/cart-service/pom.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Revshop/services/cart-service/src/main/java/revshop/cart_service/cart/controller/CartController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/cart-service/src/main/java/revshop/cart_service/cart/controller/CartController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Revshop/services/cart-service/src/main/java/revshop/cart_service/cart/dto/ProductResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/cart-service/src/main/java/revshop/cart_service/cart/dto/ProductResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Revshop/services/cart-service/src/main/java/revshop/cart_service/cart/repository/CartItemRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/cart-service/src/main/java/revshop/cart_service/cart/repository/CartItemRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Revshop/services/cart-service/src/main/java/revshop/cart_service/cart/security/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/cart-service/src/main/java/revshop/cart_service/cart/security/SecurityConfig.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Revshop/services/cart-service/src/main/java/revshop/cart_service/cart/service/CartService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/cart-service/src/main/java/revshop/cart_service/cart/service/CartService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Revshop/services/cart-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/cart-service/src/main/resources/application.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Revshop/services/notification-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/notification-service/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Revshop/services/notification-service/src/main/java/revshop/notification_service/notification/Security/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/notification-service/src/main/java/revshop/notification_service/notification/Security/SecurityConfig.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Revshop/services/notification-service/src/main/java/revshop/notification_service/notification/controller/NotificationController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/notification-service/src/main/java/revshop/notification_service/notification/controller/NotificationController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Revshop/services/notification-service/src/main/java/revshop/notification_service/notification/repository/NotificationRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/notification-service/src/main/java/revshop/notification_service/notification/repository/NotificationRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Revshop/services/notification-service/src/main/java/revshop/notification_service/notification/service/NotificationService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/notification-service/src/main/java/revshop/notification_service/notification/service/NotificationService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Revshop/services/notification-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/notification-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Revshop/services/order-service/src/main/java/revshop/order_service/OrderServiceApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/order-service/src/main/java/revshop/order_service/OrderServiceApplication.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Revshop/services/order-service/src/main/java/revshop/order_service/order/controller/OrderController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/order-service/src/main/java/revshop/order_service/order/controller/OrderController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Revshop/services/order-service/src/main/java/revshop/order_service/order/service/OrderService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/order-service/src/main/java/revshop/order_service/order/service/OrderService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Revshop/services/order-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/order-service/src/main/resources/application.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Revshop/services/payment-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/payment-service/pom.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Revshop/services/payment-service/src/main/java/revshop/payment_service/payment/controller/PaymentController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/payment-service/src/main/java/revshop/payment_service/payment/controller/PaymentController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Revshop/services/payment-service/src/main/java/revshop/payment_service/payment/security/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/payment-service/src/main/java/revshop/payment_service/payment/security/SecurityConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Revshop/services/payment-service/src/main/java/revshop/payment_service/payment/service/PaymentService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/payment-service/src/main/java/revshop/payment_service/payment/service/PaymentService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Revshop/services/product-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/product-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/ProductServiceApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/ProductServiceApplication.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/controller/ProductController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/controller/ProductController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/security/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/security/SecurityConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/controller/ReviewController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/controller/ReviewController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/model/Product.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/model/Product.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/model/Review.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/model/Review.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/repository/ProductRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/repository/ProductRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/security/JwtAuthenticationFilter.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/security/JwtAuthenticationFilter.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/service/ProductService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/service/ProductService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/service/ReviewService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/product-service/src/main/java/revshop/product_service/product/service/ReviewService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Revshop/services/product-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/product-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Revshop/services/user-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/user-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Revshop/services/user-service/src/main/java/revshop/user_service/UserServiceApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/user-service/src/main/java/revshop/user_service/UserServiceApplication.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Revshop/services/user-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/Revshop/services/user-service/src/main/resources/application.properties" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -91,12 +82,15 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "Spring Boot.ApiGatewayApplication.executor": "Run",
     "Spring Boot.CartServiceApplication.executor": "Run",
+    "Spring Boot.ConfgServerApplication.executor": "Run",
     "Spring Boot.NotificationServiceApplication.executor": "Run",
     "Spring Boot.OrderServiceApplication.executor": "Run",
     "Spring Boot.PaymentServiceApplication.executor": "Run",
     "Spring Boot.ProductServiceApplication.executor": "Run",
     "Spring Boot.RevshopApplication.executor": "Run",
+    "Spring Boot.ServiceDiscoveryApplication.executor": "Run",
     "Spring Boot.UserServiceApplication.executor": "Run",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "git-widget-placeholder": "feature/backend-completion",
@@ -125,7 +119,7 @@
       <recent name="revshop.user.model" />
     </key>
   </component>
-  <component name="RunManager" selected="Spring Boot.CartServiceApplication">
+  <component name="RunManager" selected="Spring Boot.ProductServiceApplication">
     <configuration default="true" type="JetRunConfigurationType">
       <module name="revshop" />
       <method v="2">
@@ -161,13 +155,13 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="CartServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+    <configuration name="ApiGatewayApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
       <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UnknownPolicyInFreeMode" />
-      <module name="cart-service" />
-      <option name="SPRING_BOOT_MAIN_CLASS" value="revshop.cart_service.CartServiceApplication" />
+      <module name="api-gateway" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.revshop.api_gateway.ApiGatewayApplication" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="revshop.cart_service.*" />
+          <option name="PATTERN" value="com.revshop.api_gateway.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
@@ -175,13 +169,13 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="NotificationServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+    <configuration name="ConfgServerApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
       <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UnknownPolicyInFreeMode" />
-      <module name="notification-service" />
-      <option name="SPRING_BOOT_MAIN_CLASS" value="revshop.notification_service.NotificationServiceApplication" />
+      <module name="confg-server" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.revshop.confg_server.ConfgServerApplication" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="revshop.notification_service.*" />
+          <option name="PATTERN" value="com.revshop.confg_server.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
@@ -189,13 +183,13 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="OrderServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+    <configuration name="ProductServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
       <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UnknownPolicyInFreeMode" />
-      <module name="order-service" />
-      <option name="SPRING_BOOT_MAIN_CLASS" value="revshop.order_service.OrderServiceApplication" />
+      <module name="product-service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="revshop.product_service.ProductServiceApplication" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="revshop.order_service.*" />
+          <option name="PATTERN" value="revshop.product_service.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
@@ -203,13 +197,13 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="PaymentServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+    <configuration name="ServiceDiscoveryApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
       <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UnknownPolicyInFreeMode" />
-      <module name="payment-service" />
-      <option name="SPRING_BOOT_MAIN_CLASS" value="revshop.payment_service.PaymentServiceApplication" />
+      <module name="service-discovery" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.revshop.service_discovery.ServiceDiscoveryApplication" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="revshop.payment_service.*" />
+          <option name="PATTERN" value="com.revshop.service_discovery.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
@@ -247,11 +241,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Spring Boot.CartServiceApplication" />
-        <item itemvalue="Spring Boot.OrderServiceApplication" />
-        <item itemvalue="Spring Boot.PaymentServiceApplication" />
+        <item itemvalue="Spring Boot.ProductServiceApplication" />
         <item itemvalue="Spring Boot.UserServiceApplication" />
-        <item itemvalue="Spring Boot.NotificationServiceApplication" />
+        <item itemvalue="Spring Boot.ApiGatewayApplication" />
+        <item itemvalue="Spring Boot.ConfgServerApplication" />
+        <item itemvalue="Spring Boot.ServiceDiscoveryApplication" />
       </list>
     </recent_temporary>
   </component>

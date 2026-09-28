@@ -20,7 +20,10 @@ import revshop.order_service.order.repository.OrderItemRepository;
 import revshop.order_service.order.repository.OrderRepository;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class OrderService {
@@ -87,23 +90,35 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
-    @Transactional
     public Order checkout(
             Long userId,
             String paymentMethod,
             String authorizationHeader) {
 
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", authorizationHeader);
-        headers.set("X-Internal-Key", productInternalKey);
+
+        if (authorizationHeader != null &&
+                !authorizationHeader.isBlank()) {
+
+            headers.set(
+                    "Authorization",
+                    authorizationHeader
+            );
+        }
+
+
+        headers.set(
+                "X-Internal-Key",
+                productInternalKey
+        );
 
         HttpEntity<Void> entity =
                 new HttpEntity<>(headers);
 
+
         ResponseEntity<CartItemResponse[]> cartResponse =
                 restTemplate.exchange(
-                        cartServiceUrl +
-                                "/cart",
+                        cartServiceUrl + "/cart",
                         HttpMethod.GET,
                         entity,
                         CartItemResponse[].class
@@ -118,20 +133,23 @@ public class OrderService {
             throw new RuntimeException("Cart is empty");
         }
 
+
+        Map<Long, ProductResponse> products =
+                new HashMap<>();
+
         double totalAmount = 0.0;
 
-        /*
-         * First pass:
-         * Validate products and calculate the
-         * actual total from product-service.
-         */
+
         for (CartItemResponse cartItem : cartItems) {
+
+            Long productId =
+                    cartItem.getProductId();
 
             ResponseEntity<ProductResponse> productResponse =
                     restTemplate.exchange(
                             productServiceUrl +
                                     "/api/products/internal/" +
-                                    cartItem.getProductId(),
+                                    productId,
                             HttpMethod.GET,
                             entity,
                             ProductResponse.class
@@ -144,7 +162,16 @@ public class OrderService {
 
                 throw new RuntimeException(
                         "Product not found: " +
-                                cartItem.getProductId()
+                                productId
+                );
+            }
+
+            if (cartItem.getQuantity() == null ||
+                    cartItem.getQuantity() <= 0) {
+
+                throw new RuntimeException(
+                        "Invalid quantity for product: " +
+                                productId
                 );
             }
 
@@ -153,20 +180,18 @@ public class OrderService {
 
                 throw new RuntimeException(
                         "Insufficient stock for product: " +
-                                product.getId()
+                                productId
                 );
             }
 
-            double price = product.getPrice();
+            products.put(productId, product);
 
             totalAmount +=
-                    price * cartItem.getQuantity();
+                    product.getPrice()
+                            * cartItem.getQuantity();
         }
 
-        /*
-         * Create order using server-calculated
-         * total amount.
-         */
+
         Order order = new Order();
 
         order.setUserId(userId);
@@ -176,90 +201,88 @@ public class OrderService {
 
         order = orderRepository.save(order);
 
-        /*
-         * Create order items and reduce stock.
-         */
+
         for (CartItemResponse cartItem : cartItems) {
 
-            ResponseEntity<ProductResponse> productResponse =
-                    restTemplate.exchange(
-                            productServiceUrl +
-                                    "/api/products/internal/" +
-                                    cartItem.getProductId(),
-                            HttpMethod.GET,
-                            entity,
-                            ProductResponse.class
-                    );
-
             ProductResponse product =
-                    productResponse.getBody();
-
-            if (product == null) {
-
-                throw new RuntimeException(
-                        "Product not found: " +
-                                cartItem.getProductId()
-                );
-            }
-
-            double price = product.getPrice();
+                    products.get(
+                            cartItem.getProductId()
+                    );
 
             OrderItem orderItem =
                     new OrderItem();
 
             orderItem.setOrder(order);
+
             orderItem.setProductId(
                     cartItem.getProductId()
             );
+
             orderItem.setQuantity(
                     cartItem.getQuantity()
             );
-            orderItem.setPrice(price);
+
+            orderItem.setPrice(
+                    product.getPrice()
+            );
 
             orderItemRepository.save(orderItem);
+        }
 
-            /*
-             * Reduce product stock.
-             */
-            HttpHeaders stockHeaders =
-                    new HttpHeaders();
 
-            stockHeaders.set(
-                    "Authorization",
-                    authorizationHeader
-            );
+        List<Long> reducedProducts =
+                new ArrayList<>();
 
-            stockHeaders.set(
-                    "X-Internal-Key",
-                    productInternalKey
-            );
+        try {
 
-            HttpEntity<Void> stockEntity =
-                    new HttpEntity<>(stockHeaders);
+            for (CartItemResponse cartItem : cartItems) {
 
-            restTemplate.exchange(
-                    productServiceUrl +
-                            "/api/products/internal/" +
-                            product.getId() +
-                            "/stock?quantity=" +
-                            cartItem.getQuantity(),
-                    HttpMethod.PUT,
-                    stockEntity,
-                    Void.class
+                ProductResponse product =
+                        products.get(
+                                cartItem.getProductId()
+                        );
+
+                restTemplate.exchange(
+                        productServiceUrl +
+                                "/api/products/internal/" +
+                                product.getId() +
+                                "/stock?quantity=" +
+                                cartItem.getQuantity(),
+
+                        HttpMethod.PUT,
+
+                        entity,
+
+                        ProductResponse.class
+                );
+
+                reducedProducts.add(
+                        product.getId()
+                );
+            }
+
+        } catch (Exception e) {
+
+
+            throw new RuntimeException(
+                    "Unable to reduce product stock. " +
+                            "Order was not completed.",
+                    e
             );
         }
 
-        /*
-         * Process payment using the server-calculated
-         * order total.
-         */
+
         HttpHeaders paymentHeaders =
                 new HttpHeaders();
 
-        paymentHeaders.set(
-                "Authorization",
-                authorizationHeader
-        );
+        if (authorizationHeader != null &&
+                !authorizationHeader.isBlank()) {
+
+            paymentHeaders.set(
+                    "Authorization",
+                    authorizationHeader
+            );
+        }
 
         HttpEntity<Void> paymentEntity =
                 new HttpEntity<>(paymentHeaders);
@@ -273,17 +296,42 @@ public class OrderService {
                         "&amount=" +
                         totalAmount;
 
-        ResponseEntity<PaymentResponse> paymentResponse =
-                restTemplate.exchange(
-                        paymentUrl,
-                        HttpMethod.POST,
-                        paymentEntity,
-                        PaymentResponse.class
-                );
+        ResponseEntity<PaymentResponse> paymentResponse;
+
+        try {
+
+            paymentResponse =
+                    restTemplate.exchange(
+                            paymentUrl,
+                            HttpMethod.POST,
+                            paymentEntity,
+                            PaymentResponse.class
+                    );
+
+        } catch (Exception e) {
+
+            /*
+             * Payment service failed.
+             */
+            order.setStatus("PAYMENT_FAILED");
+
+            orderRepository.save(order);
+
+            throw new RuntimeException(
+                    "Payment failed",
+                    e
+            );
+        }
 
         if (paymentResponse.getBody() == null ||
                 !"SUCCESS".equalsIgnoreCase(
-                        paymentResponse.getBody().getStatus())) {
+                        paymentResponse
+                                .getBody()
+                                .getStatus())) {
+
+            order.setStatus("PAYMENT_FAILED");
+
+            orderRepository.save(order);
 
             throw new RuntimeException(
                     "Payment failed"
@@ -291,28 +339,42 @@ public class OrderService {
         }
 
         /*
-         * Clear cart after successful payment.
+         * ------------------------------------------------
+         * 7. CLEAR CART
+         * ------------------------------------------------
          */
-        restTemplate.exchange(
-                cartServiceUrl +
-                        "/cart/clear",
-                HttpMethod.DELETE,
-                entity,
-                Void.class
-        );
 
-        /*
-         * Send notification.
-         */
+        try {
+
+            restTemplate.exchange(
+                    cartServiceUrl +
+                            "/cart/clear",
+                    HttpMethod.DELETE,
+                    entity,
+                    Void.class
+            );
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "Warning: Cart could not be cleared"
+            );
+        }
+
+
         try {
 
             HttpHeaders notificationHeaders =
                     new HttpHeaders();
 
-            notificationHeaders.set(
-                    "Authorization",
-                    authorizationHeader
-            );
+            if (authorizationHeader != null &&
+                    !authorizationHeader.isBlank()) {
+
+                notificationHeaders.set(
+                        "Authorization",
+                        authorizationHeader
+                );
+            }
 
             notificationHeaders.setContentType(
                     MediaType.APPLICATION_JSON
@@ -345,11 +407,12 @@ public class OrderService {
                     Void.class
             );
 
-        } catch (Exception ignored) {
-            /*
-             * Notification failure should not
-             * invalidate an already successful order.
-             */
+        } catch (Exception e) {
+
+            System.out.println(
+                    "Warning: Notification failed: " +
+                            e.getMessage()
+            );
         }
 
         return order;
@@ -414,17 +477,17 @@ public class OrderService {
                 .findByOrderId(orderId);
     }
 
+    @Transactional
     public Order updateOrderStatus(
             Long orderId,
             String status,
             Authentication authentication) {
 
-        Order order =
-                orderRepository.findById(orderId)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Order not found"
-                                ));
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() ->
+                        new RuntimeException("Order not found"));
+
+        Long userId = getAuthenticatedUserId(authentication);
 
         String role = authentication.getAuthorities()
                 .stream()
@@ -433,34 +496,137 @@ public class OrderService {
                 .map(authority -> authority.substring(5))
                 .findFirst()
                 .orElseThrow(() ->
-                        new RuntimeException("Unable to determine user role"));
+                        new RuntimeException(
+                                "Unable to determine user role"));
 
-        /*
-         * Seller can update order status.
-         */
-        if ("SELLER".equalsIgnoreCase(role)) {
+        String newStatus = status.toUpperCase();
 
-            order.setStatus(status);
+        if (!newStatus.equals("PLACED") &&
+                !newStatus.equals("CONFIRMED") &&
+                !newStatus.equals("SHIPPED") &&
+                !newStatus.equals("DELIVERED") &&
+                !newStatus.equals("CANCELLED")) {
+
+            throw new RuntimeException(
+                    "Invalid order status: " + status);
+        }
+
+        if ("BUYER".equalsIgnoreCase(role)) {
+
+            if (!order.getUserId().equals(userId)) {
+
+                throw new RuntimeException(
+                        "You are not authorized to update this order");
+            }
+
+            if (!"CANCELLED".equals(newStatus)) {
+
+                throw new RuntimeException(
+                        "Buyer can only cancel an order");
+            }
+
+            if ("DELIVERED".equalsIgnoreCase(order.getStatus()) ||
+                    "CANCELLED".equalsIgnoreCase(order.getStatus())) {
+
+                throw new RuntimeException(
+                        "This order cannot be cancelled");
+            }
+
+            // Restore stock
+            restoreStockForOrder(order);
+
+            order.setStatus("CANCELLED");
 
             return orderRepository.save(order);
         }
 
-        /*
-         * Buyer can only update their own order.
-         */
-        Long userId =
-                getAuthenticatedUserId(authentication);
 
-        if (!order.getUserId()
-                .equals(userId)) {
+        if ("SELLER".equalsIgnoreCase(role)) {
 
-            throw new RuntimeException(
-                    "You are not authorized to update this order"
-            );
+            if ("CANCELLED".equals(newStatus)) {
+
+                throw new RuntimeException(
+                        "Seller cannot cancel an order");
+            }
+
+            String currentStatus =
+                    order.getStatus().toUpperCase();
+
+            // PLACED -> CONFIRMED
+            if ("PLACED".equals(currentStatus) &&
+                    !"CONFIRMED".equals(newStatus)) {
+
+                throw new RuntimeException(
+                        "PLACED order can only be CONFIRMED");
+            }
+
+            // CONFIRMED -> SHIPPED
+            if ("CONFIRMED".equals(currentStatus) &&
+                    !"SHIPPED".equals(newStatus)) {
+
+                throw new RuntimeException(
+                        "CONFIRMED order can only be SHIPPED");
+            }
+
+            // SHIPPED -> DELIVERED
+            if ("SHIPPED".equals(currentStatus) &&
+                    !"DELIVERED".equals(newStatus)) {
+
+                throw new RuntimeException(
+                        "SHIPPED order can only be DELIVERED");
+            }
+
+            // DELIVERED cannot change
+            if ("DELIVERED".equals(currentStatus)) {
+
+                throw new RuntimeException(
+                        "Delivered order cannot be updated");
+            }
+
+            order.setStatus(newStatus);
+
+            return orderRepository.save(order);
         }
 
-        order.setStatus(status);
+        throw new RuntimeException(
+                "You are not authorized to update order status");
+    }
 
-        return orderRepository.save(order);
+    @Transactional
+    public void restoreStockForOrder(Order order) {
+
+        List<OrderItem> orderItems =
+                orderItemRepository.findByOrderId(order.getId());
+
+        if (orderItems == null || orderItems.isEmpty()) {
+            return;
+        }
+
+        for (OrderItem item : orderItems) {
+
+            HttpHeaders headers = new HttpHeaders();
+
+            headers.set(
+                    "X-Internal-Key",
+                    productInternalKey
+            );
+
+            HttpEntity<Void> entity =
+                    new HttpEntity<>(headers);
+
+            String url =
+                    productServiceUrl +
+                            "/api/products/internal/" +
+                            item.getProductId() +
+                            "/stock/restore?quantity=" +
+                            item.getQuantity();
+
+            restTemplate.exchange(
+                    url,
+                    HttpMethod.PUT,
+                    entity,
+                    Void.class
+            );
+        }
     }
 }

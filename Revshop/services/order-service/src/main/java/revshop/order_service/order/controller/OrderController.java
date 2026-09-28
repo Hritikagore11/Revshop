@@ -135,4 +135,17 @@ public class OrderController {
                 )
         );
     }
+
+    @GetMapping("/history")
+    public ResponseEntity<List<Order>> getOrderHistory(
+            Authentication authentication) {
+
+        Long userId =
+                orderService.getAuthenticatedUserId(authentication);
+
+        return ResponseEntity.ok(
+                orderService.getOrdersByUser(userId)
+        );
+    }
+
 }

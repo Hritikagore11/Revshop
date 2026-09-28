@@ -1,6 +1,7 @@
 package revshop.payment_service.payment.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import revshop.payment_service.payment.model.Payment;
 import revshop.payment_service.payment.service.PaymentService;
@@ -31,6 +32,7 @@ public class PaymentController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('BUYER')")
     public ResponseEntity<Payment> getPayment(
             @PathVariable Long id) {
 
@@ -39,6 +41,7 @@ public class PaymentController {
         );
     }
     @GetMapping("/order/{orderId}")
+    @PreAuthorize("hasRole('BUYER')")
     public ResponseEntity<Payment> getPaymentByOrderId(
             @PathVariable Long orderId) {
 

@@ -3,25 +3,40 @@ package revshop.product_service.product.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "reviews")
+@Table(name = "reviews", uniqueConstraints = {@UniqueConstraint(columnNames = {
+                                "product_id",
+                                "buyer_id"
+                        }
+                )
+        }
+)
 public class Review {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "product_id", nullable = false)
     private Long productId;
 
+    @Column(name = "buyer_id", nullable = false)
     private Long buyerId;
 
-    private int rating;
+    @Column(nullable = false)
+    private Integer rating;
 
     private String comment;
 
     public Review() {
     }
 
-    public Review(Long id, Long productId, Long buyerId, int rating, String comment) {
+    public Review(
+            Long id,
+            Long productId,
+            Long buyerId,
+            Integer rating,
+            String comment) {
+
         this.id = id;
         this.productId = productId;
         this.buyerId = buyerId;
@@ -53,11 +68,11 @@ public class Review {
         this.buyerId = buyerId;
     }
 
-    public int getRating() {
+    public Integer getRating() {
         return rating;
     }
 
-    public void setRating(int rating) {
+    public void setRating(Integer rating) {
         this.rating = rating;
     }
 

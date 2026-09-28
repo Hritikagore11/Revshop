@@ -1,4 +1,5 @@
 package revshop.product_service.product.security;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -44,11 +45,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             String email = jwtService.extractEmail(token);
             String role = jwtService.extractRole(token);
+            Long userId = jwtService.extractUserId(token);
 
-            System.out.println("JWT EMAIL = "+email);
-            System.out.println("JWT ROLE = "+role);
+            System.out.println("JWT EMAIL = " + email);
+            System.out.println("JWT ROLE = " + role);
 
-            if (email != null && role != null &&
+            if (email != null &&
+                    role != null &&
+                    userId != null &&
                     SecurityContextHolder
                             .getContext()
                             .getAuthentication() == null) {
@@ -63,7 +67,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 Collections.singletonList(authority)
                         );
 
-                SecurityContextHolder.getContext()
+                authentication.setDetails(userId);
+
+                SecurityContextHolder
+                        .getContext()
                         .setAuthentication(authentication);
             }
 
