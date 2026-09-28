@@ -15,6 +15,12 @@ import revshop.product.repository.ProductRepository;
 import revshop.user.model.User;
 import revshop.user.repository.UserRepository;
 
+import revshop.exception.CartEmptyException;
+import revshop.exception.CartNotFoundException;
+import revshop.exception.InsufficientStockException;
+import revshop.exception.OrderNotFoundException;
+import revshop.exception.UserNotFoundException;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -46,10 +52,10 @@ public class OrderService {
     public Order createOrder(Long userId) {
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         Cart cart = cartRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Cart not found"));
+                .orElseThrow(() -> new CartNotFoundException("Cart not found"));
 
         List<CartItem> cartItems = cartItemRepository.findAll()
                 .stream()
@@ -57,7 +63,7 @@ public class OrderService {
                 .toList();
 
         if (cartItems.isEmpty()) {
-            throw new RuntimeException("Cart is empty");
+            throw new CartEmptyException("Cart is empty");
         }
 
         double totalAmount = 0;
@@ -66,7 +72,7 @@ public class OrderService {
             Product product = cartItem.getProduct();
 
             if (product.getQuantity() < cartItem.getQuantity()) {
-                throw new RuntimeException(
+                throw new InsufficientStockException(
                         "Insufficient stock for product: " + product.getName()
                 );
             }
@@ -109,7 +115,7 @@ public class OrderService {
     public List<Order> getOrdersByUser(Long userId) {
 
         if (!userRepository.existsById(userId)) {
-            throw new RuntimeException("User not found");
+            throw new UserNotFoundException("User not found");
         }
 
         return orderRepository.findByUserId(userId);
@@ -118,7 +124,7 @@ public class OrderService {
     public Order getOrderById(Long orderId) {
 
         return orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new OrderNotFoundException("Order not found"));
     }
 
     public Order checkout(Long userId) {
@@ -132,7 +138,7 @@ public class OrderService {
     public Order updateOrderStatus(Long orderId, String status) {
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new OrderNotFoundException("Order not found"));
 
         order.setStatus(status);
 
@@ -142,7 +148,7 @@ public class OrderService {
     public Order cancelOrder(Long orderId) {
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new OrderNotFoundException("Order not found"));
 
         order.setStatus("CANCELLED");
 

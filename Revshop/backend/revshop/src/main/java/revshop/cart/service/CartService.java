@@ -10,6 +10,8 @@ import revshop.product.repository.ProductRepository;
 import revshop.user.model.User;
 import revshop.user.repository.UserRepository;
 
+import revshop.exception.*;
+
 import java.util.List;
 
 @Service
@@ -33,17 +35,21 @@ public class CartService {
     public CartItem addItem(Long userId, Long productId, Integer quantity) {
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() ->
+                        new UserNotFoundException("User not found"));
 
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() ->
+                        new ProductNotFoundException("Product not found"));
 
         if (quantity == null || quantity <= 0) {
-            throw new RuntimeException("Invalid quantity");
+            throw new InvalidQuantityException(
+                    "Quantity must be greater than 0");
         }
 
         if (product.getQuantity() < quantity) {
-            throw new RuntimeException("Insufficient stock");
+            throw new InsufficientStockException(
+                    "Insufficient stock");
         }
 
         Cart cart = cartRepository.findByUserId(userId)
@@ -64,17 +70,19 @@ public class CartService {
     public List<CartItem> getCartItems(Long userId) {
 
         Cart cart = cartRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Cart not found"));
+                .orElseThrow(() ->
+                        new CartNotFoundException("Cart not found"));
 
-        return cartItemRepository.findAll()
-                .stream()
-                .filter(item -> item.getCart().getId().equals(cart.getId()))
-                .toList();
+        return cartItemRepository.findByCartId(cart.getId());
     }
 
     public Double getCartTotal(Long userId) {
 
-        List<CartItem> cartItems = cartItemRepository.findByUserId(userId);
+        Cart cart = cartRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Cart not found"));
+
+        List<CartItem> cartItems =
+                cartItemRepository.findByCartId(cart.getId());
 
         double total = 0;
 
@@ -88,10 +96,12 @@ public class CartService {
     public CartItem updateItem(Long itemId, Integer quantity) {
 
         CartItem existingItem = cartItemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Cart item not found"));
+                .orElseThrow(() ->
+                        new CartItemNotFoundException("Cart item not found"));
 
         if (quantity == null || quantity <= 0) {
-            throw new RuntimeException("Quantity must be greater than 0");
+            throw new InvalidQuantityException(
+                    "Quantity must be greater than 0");
         }
 
         existingItem.setQuantity(quantity);
@@ -102,7 +112,8 @@ public class CartService {
     public void removeItem(Long itemId) {
 
         if (!cartItemRepository.existsById(itemId)) {
-            throw new RuntimeException("Cart item not found");
+            throw new CartItemNotFoundException(
+                    "Cart item not found");
         }
 
         cartItemRepository.deleteById(itemId);
@@ -110,7 +121,12 @@ public class CartService {
 
     public void clearCart(Long userId) {
 
-        List<CartItem> cartItems = cartItemRepository.findByUserId(userId);
+        Cart cart = cartRepository.findByUserId(userId)
+                .orElseThrow(() ->
+                        new CartNotFoundException("Cart not found"));
+
+        List<CartItem> cartItems =
+                cartItemRepository.findByCartId(cart.getId());
 
         cartItemRepository.deleteAll(cartItems);
     }
