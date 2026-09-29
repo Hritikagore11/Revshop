@@ -1,16 +1,10 @@
 package revshop.cart_service.cart.service;
-
+import revshop.cart_service.cart.client.ProductClient;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import revshop.cart_service.cart.model.Cart;
@@ -26,10 +20,7 @@ public class CartService {
 
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
-    private final RestTemplate restTemplate;
-
-    @Value("${product.service.url}")
-    private String productServiceUrl;
+    private final ProductClient productClient;
 
     @Value("${product.internal.key}")
     private String productInternalKey;
@@ -37,11 +28,11 @@ public class CartService {
     public CartService(
             CartRepository cartRepository,
             CartItemRepository cartItemRepository,
-            RestTemplate restTemplate) {
+            ProductClient productClient) {
 
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
-        this.restTemplate = restTemplate;
+        this.productClient = productClient;
     }
 
     public Long getAuthenticatedUserId(
@@ -166,11 +157,7 @@ public class CartService {
 
         for (CartItem item : cartItems) {
 
-            Product product =
-                    getProduct(
-                            item.getProductId(),
-                            authorizationHeader
-                    );
+            Product product = getProduct(item.getProductId());
 
             if (product.getPrice() == null) {
                 continue;
@@ -301,78 +288,32 @@ public class CartService {
         return item;
     }
 
-    private Product getProduct(
-            Long productId) {
 
-        return getProduct(
-                productId,
-                null
-        );
-    }
-
-    private Product getProduct(
-            Long productId,
-            String authorizationHeader) {
-
-        String url =
-                productServiceUrl +
-                        "/api/products/internal/" +
-                        productId;
-
-        HttpHeaders headers =
-                new HttpHeaders();
-
-        headers.set(
-                "X-Internal-Key",
-                productInternalKey
-        );
-
-        if (authorizationHeader != null &&
-                !authorizationHeader.isBlank()) {
-
-            headers.set(
-                    "Authorization",
-                    authorizationHeader
-            );
-        }
-
-        HttpEntity<Void> entity =
-                new HttpEntity<>(headers);
+    private Product getProduct(Long productId) {
 
         try {
-
-            ResponseEntity<Product> response =
-                    restTemplate.exchange(
-                            url,
-                            HttpMethod.GET,
-                            entity,
-                            Product.class
+            Product product =
+                    productClient.getProduct(
+                            productId,
+                            productInternalKey
                     );
 
-            Product product =
-                    response.getBody();
-
             if (product == null) {
-
                 throw new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
-                        "Product not found: " +
-                                productId
+                        "Product not found: " + productId
                 );
             }
 
             return product;
 
         } catch (ResponseStatusException e) {
-
             throw e;
 
-        } catch (RestClientException e) {
-
+        } catch (Exception e) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_GATEWAY,
-                    "Unable to fetch product: " +
-                            productId
+                    "Unable to fetch product: " + productId
             );
         }
     }

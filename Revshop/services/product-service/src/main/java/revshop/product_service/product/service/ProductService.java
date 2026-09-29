@@ -1,14 +1,13 @@
 package revshop.product_service.product.service;
-
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
+import revshop.product_service.product.client.NotificationClient;
 import revshop.product_service.product.model.Product;
 import revshop.product_service.product.repository.ProductRepository;
 
@@ -18,19 +17,19 @@ import java.util.List;
 public class ProductService {
 
     private final ProductRepository productRepository;
-    private final RestTemplate restTemplate;
 
-    @Value("${notification.service.url}")
-    private String notificationServiceUrl;
 
     @Value("${notification.internal.key}")
     private String notificationInternalKey;
 
+    private final NotificationClient notificationClient;
+
     public ProductService(
-            ProductRepository productRepository) {
+            ProductRepository productRepository,
+            NotificationClient notificationClient) {
 
         this.productRepository = productRepository;
-        this.restTemplate = new RestTemplate();
+        this.notificationClient = notificationClient;
     }
 
     public Product createProduct(
@@ -517,22 +516,6 @@ public class ProductService {
 
         try {
 
-            String url =
-                    notificationServiceUrl +
-                            "/notifications/internal";
-
-            HttpHeaders headers =
-                    new HttpHeaders();
-
-            headers.setContentType(
-                    MediaType.APPLICATION_JSON
-            );
-
-            headers.set(
-                    "X-Internal-Key",
-                    notificationInternalKey
-            );
-
             String message =
                     "Low stock alert: Product '" +
                             product.getName() +
@@ -540,30 +523,17 @@ public class ProductService {
                             product.getQuantity() +
                             " item(s) remaining.";
 
-            String requestBody =
-                    """
-                    {
-                        "userId": %d,
-                        "message": "%s",
-                        "type": "LOW_STOCK",
-                        "isRead": false
-                    }
-                    """.formatted(
+            NotificationClient.NotificationRequest request =
+                    new NotificationClient.NotificationRequest(
                             product.getSellerId(),
-                            message.replace("\"", "\\\"")
+                            message,
+                            "LOW_STOCK",
+                            false
                     );
 
-            HttpEntity<String> entity =
-                    new HttpEntity<>(
-                            requestBody,
-                            headers
-                    );
-
-            restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    entity,
-                    Void.class
+            notificationClient.createNotification(
+                    request,
+                    notificationInternalKey
             );
 
         } catch (Exception e) {

@@ -5,8 +5,8 @@ public class ProductResponse {
     private Long id;
     private String name;
     private Double price;
-    private Integer quantity;
     private Double discount;
+    private Integer quantity;
 
     public ProductResponse() {
     }
@@ -35,19 +35,19 @@ public class ProductResponse {
         this.price = price;
     }
 
-    public Integer getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(Integer quantity) {
-        this.quantity = quantity;
-    }
-
     public Double getDiscount() {
         return discount;
     }
 
     public void setDiscount(Double discount) {
         this.discount = discount;
+    }
+
+    public Integer getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
     }
 }

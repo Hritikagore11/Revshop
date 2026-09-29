@@ -1,15 +1,13 @@
 package revshop.order_service.order.service;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
+import revshop.order_service.client.CartClient;
+import revshop.order_service.client.NotificationClient;
+import revshop.order_service.client.PaymentClient;
 import revshop.order_service.client.ProductClient;
 import revshop.order_service.order.dto.CartItemResponse;
 import revshop.order_service.order.dto.PaymentResponse;
@@ -29,20 +27,10 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
-    private final RestTemplate restTemplate;
+    private final CartClient cartClient;
     private final ProductClient productClient;
-
-    @Value("${cart.service.url}")
-    private String cartServiceUrl;
-
-    @Value("${product.service.url}")
-    private String productServiceUrl;
-
-    @Value("${payment.service.url}")
-    private String paymentServiceUrl;
-
-    @Value("${notification.service.url}")
-    private String notificationServiceUrl;
+    private final PaymentClient paymentClient;
+    private final NotificationClient notificationClient;
 
     @Value("${product.internal.key}")
     private String productInternalKey;
@@ -50,13 +38,17 @@ public class OrderService {
     public OrderService(
             OrderRepository orderRepository,
             OrderItemRepository orderItemRepository,
-            RestTemplate restTemplate,
-            ProductClient productClient) {
+            CartClient cartClient,
+            ProductClient productClient,
+            PaymentClient paymentClient,
+            NotificationClient notificationClient) {
 
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
-        this.restTemplate = restTemplate;
+        this.cartClient = cartClient;
         this.productClient = productClient;
+        this.paymentClient = paymentClient;
+        this.notificationClient = notificationClient;
     }
 
     public Long getAuthenticatedUserId(Authentication authentication) {
@@ -97,42 +89,31 @@ public class OrderService {
             String paymentMethod,
             String authorizationHeader) {
 
-        HttpHeaders headers = new HttpHeaders();
+        // 1. Get cart using Feign
+        CartItemResponse[] cartItems;
 
-        if (authorizationHeader != null &&
-                !authorizationHeader.isBlank()) {
+        try {
 
-            headers.set(
-                    "Authorization",
-                    authorizationHeader
+            cartItems =
+                    cartClient.getCart(authorizationHeader);
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(
+                    "Unable to fetch cart",
+                    e
             );
         }
-
-        headers.set(
-                "X-Internal-Key",
-                productInternalKey
-        );
-
-        HttpEntity<Void> entity =
-                new HttpEntity<>(headers);
-
-        ResponseEntity<CartItemResponse[]> cartResponse =
-                restTemplate.exchange(
-                        cartServiceUrl + "/cart",
-                        HttpMethod.GET,
-                        entity,
-                        CartItemResponse[].class
-                );
-
-        CartItemResponse[] cartItems =
-                cartResponse.getBody();
 
         if (cartItems == null ||
                 cartItems.length == 0) {
 
-            throw new RuntimeException("Cart is empty");
+            throw new RuntimeException(
+                    "Cart is empty"
+            );
         }
 
+        // 2. Fetch products and calculate total
         Map<Long, ProductResponse> products =
                 new HashMap<>();
 
@@ -143,11 +124,24 @@ public class OrderService {
             Long productId =
                     cartItem.getProductId();
 
-            ProductResponse product =
-                    productClient.getProduct(
-                            productId,
-                            productInternalKey
-                    );
+            ProductResponse product;
+
+            try {
+
+                product =
+                        productClient.getProduct(
+                                productId,
+                                productInternalKey
+                        );
+
+            } catch (Exception e) {
+
+                throw new RuntimeException(
+                        "Unable to fetch product: " +
+                                productId,
+                        e
+                );
+            }
 
             if (product == null) {
 
@@ -157,6 +151,7 @@ public class OrderService {
                 );
             }
 
+            // Validate quantity
             if (cartItem.getQuantity() == null ||
                     cartItem.getQuantity() <= 0) {
 
@@ -166,8 +161,10 @@ public class OrderService {
                 );
             }
 
-            if (product.getQuantity() <
-                    cartItem.getQuantity()) {
+            // Validate stock
+            if (product.getQuantity() == null ||
+                    product.getQuantity() <
+                            cartItem.getQuantity()) {
 
                 throw new RuntimeException(
                         "Insufficient stock for product: " +
@@ -180,6 +177,7 @@ public class OrderService {
                     product
             );
 
+            // Calculate discounted price
             double price =
                     product.getPrice();
 
@@ -197,6 +195,7 @@ public class OrderService {
                             cartItem.getQuantity();
         }
 
+        // 3. Create order
         Order order = new Order();
 
         order.setUserId(userId);
@@ -207,7 +206,9 @@ public class OrderService {
         order =
                 orderRepository.save(order);
 
-        for (CartItemResponse cartItem : cartItems) {
+        // 4. Create order items
+        for (CartItemResponse cartItem :
+                cartItems) {
 
             ProductResponse product =
                     products.get(
@@ -246,28 +247,16 @@ public class OrderService {
             );
         }
 
+        // 5. Reduce product stock using Feign
         try {
 
             for (CartItemResponse cartItem :
                     cartItems) {
 
-                ProductResponse product =
-                        products.get(
-                                cartItem.getProductId()
-                        );
-
-                restTemplate.exchange(
-                        productServiceUrl +
-                                "/api/products/internal/" +
-                                product.getId() +
-                                "/stock?quantity=" +
-                                cartItem.getQuantity(),
-
-                        HttpMethod.PUT,
-
-                        entity,
-
-                        ProductResponse.class
+                productClient.reduceStock(
+                        cartItem.getProductId(),
+                        cartItem.getQuantity(),
+                        productInternalKey
                 );
             }
 
@@ -280,43 +269,17 @@ public class OrderService {
             );
         }
 
-        HttpHeaders paymentHeaders =
-                new HttpHeaders();
-
-        if (authorizationHeader != null &&
-                !authorizationHeader.isBlank()) {
-
-            paymentHeaders.set(
-                    "Authorization",
-                    authorizationHeader
-            );
-        }
-
-        HttpEntity<Void> paymentEntity =
-                new HttpEntity<>(
-                        paymentHeaders
-                );
-
-        String paymentUrl =
-                paymentServiceUrl +
-                        "/payments?orderId=" +
-                        order.getId() +
-                        "&paymentMethod=" +
-                        paymentMethod +
-                        "&amount=" +
-                        totalAmount;
-
-        ResponseEntity<PaymentResponse>
-                paymentResponse;
+        // 6. Make payment using Feign
+        PaymentResponse paymentResponse;
 
         try {
 
             paymentResponse =
-                    restTemplate.exchange(
-                            paymentUrl,
-                            HttpMethod.POST,
-                            paymentEntity,
-                            PaymentResponse.class
+                    paymentClient.createPayment(
+                            order.getId(),
+                            paymentMethod,
+                            totalAmount,
+                            authorizationHeader
                     );
 
         } catch (Exception e) {
@@ -333,11 +296,10 @@ public class OrderService {
             );
         }
 
-        if (paymentResponse.getBody() == null ||
+        // 7. Validate payment response
+        if (paymentResponse == null ||
                 !"SUCCESS".equalsIgnoreCase(
-                        paymentResponse
-                                .getBody()
-                                .getStatus()
+                        paymentResponse.getStatus()
                 )) {
 
             order.setStatus(
@@ -351,17 +313,11 @@ public class OrderService {
             );
         }
 
+        // 8. Clear cart using Feign
         try {
 
-            restTemplate.exchange(
-                    cartServiceUrl +
-                            "/cart/clear",
-
-                    HttpMethod.DELETE,
-
-                    entity,
-
-                    Void.class
+            cartClient.clearCart(
+                    authorizationHeader
             );
 
         } catch (Exception e) {
@@ -371,53 +327,23 @@ public class OrderService {
             );
         }
 
+        // 9. Send notification using Feign
         try {
 
-            HttpHeaders notificationHeaders =
-                    new HttpHeaders();
-
-            if (authorizationHeader != null &&
-                    !authorizationHeader.isBlank()) {
-
-                notificationHeaders.set(
-                        "Authorization",
-                        authorizationHeader
-                );
-            }
-
-            notificationHeaders.setContentType(
-                    MediaType.APPLICATION_JSON
-            );
-
-            String notificationJson =
-                    """
-                    {
-                        "userId": %d,
-                        "message": "Order #%d placed successfully",
-                        "type": "ORDER",
-                        "isRead": false
-                    }
-                    """.formatted(
+            NotificationClient.NotificationRequest
+                    notificationRequest =
+                    new NotificationClient.NotificationRequest(
                             userId,
-                            order.getId()
+                            "Order #" +
+                                    order.getId() +
+                                    " placed successfully",
+                            "ORDER",
+                            false
                     );
 
-            HttpEntity<String>
-                    notificationEntity =
-                    new HttpEntity<>(
-                            notificationJson,
-                            notificationHeaders
-                    );
-
-            restTemplate.exchange(
-                    notificationServiceUrl +
-                            "/notifications",
-
-                    HttpMethod.POST,
-
-                    notificationEntity,
-
-                    Void.class
+            notificationClient.createNotification(
+                    notificationRequest,
+                    authorizationHeader
             );
 
         } catch (Exception e) {
@@ -428,6 +354,7 @@ public class OrderService {
             );
         }
 
+        // 10. Return completed order
         return order;
     }
 
@@ -631,41 +558,19 @@ public class OrderService {
 
         for (OrderItem item : orderItems) {
 
-            Long productId = item.getProductId();
-            Integer quantity = item.getQuantity();
-
-            HttpHeaders headers =
-                    new HttpHeaders();
-
-            headers.set(
-                    "X-Internal-Key",
-                    productInternalKey
-            );
-
-            HttpEntity<Void> entity =
-                    new HttpEntity<>(headers);
-
-            String url =
-                    productServiceUrl +
-                            "/api/products/internal/" +
-                            productId +
-                            "/restore-stock?quantity=" +
-                            quantity;
-
             try {
 
-                restTemplate.exchange(
-                        url,
-                        HttpMethod.PUT,
-                        entity,
-                        ProductResponse.class
+                productClient.restoreStock(
+                        item.getProductId(),
+                        item.getQuantity(),
+                        productInternalKey
                 );
 
             } catch (Exception e) {
 
                 throw new RuntimeException(
                         "Unable to restore stock for product: " +
-                                productId,
+                                item.getProductId(),
                         e
                 );
             }
