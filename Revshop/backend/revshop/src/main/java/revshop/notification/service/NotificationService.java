@@ -1,6 +1,8 @@
 package revshop.notification.service;
 
 import org.springframework.stereotype.Service;
+import revshop.notification.exception.InvalidNotificationException;
+import revshop.notification.exception.NotificationNotFoundException;
 import revshop.notification.model.Notification;
 import revshop.notification.repository.NotificationRepository;
 
@@ -12,41 +14,73 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
 
-    public NotificationService(NotificationRepository notificationRepository) {
+    public NotificationService(
+            NotificationRepository notificationRepository) {
+
         this.notificationRepository = notificationRepository;
     }
 
+    public List<Notification> getNotificationsByUser(
+            Long userId) {
 
-    public List<Notification> getNotificationsByUser(Long userId) {
+        if (userId == null) {
+            throw new InvalidNotificationException(
+                    "User ID is required"
+            );
+        }
 
         return notificationRepository.findByUserId(userId);
     }
 
+    public List<Notification> getUnreadNotifications(
+            Long userId) {
 
-    public List<Notification> getUnreadNotifications(Long userId) {
+        if (userId == null) {
+            throw new InvalidNotificationException(
+                    "User ID is required"
+            );
+        }
 
-        return notificationRepository.findByUserIdAndIsReadFalse(userId);
+        return notificationRepository
+                .findByUserIdAndIsReadFalse(userId);
     }
-
 
     public List<Notification> getNotificationsByType(
             Long userId,
             String type) {
 
-        return notificationRepository.findByUserIdAndType(
-                userId,
-                type
-        );
+        if (userId == null) {
+            throw new InvalidNotificationException(
+                    "User ID is required"
+            );
+        }
+
+        if (type == null || type.trim().isEmpty()) {
+            throw new InvalidNotificationException(
+                    "Notification type is required"
+            );
+        }
+
+        return notificationRepository
+                .findByUserIdAndType(userId, type);
     }
 
+    public Notification markAsRead(
+            Long notificationId) {
 
-    public Notification markAsRead(Long notificationId) {
+        if (notificationId == null) {
+            throw new InvalidNotificationException(
+                    "Notification ID is required"
+            );
+        }
 
         Notification notification =
-                notificationRepository.findById(notificationId)
+                notificationRepository
+                        .findById(notificationId)
                         .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Notification not found"
+                                new NotificationNotFoundException(
+                                        "Notification not found with id: "
+                                                + notificationId
                                 )
                         );
 
@@ -55,8 +89,14 @@ public class NotificationService {
         return notificationRepository.save(notification);
     }
 
+    public List<Notification> markAllAsRead(
+            Long userId) {
 
-    public List<Notification> markAllAsRead(Long userId) {
+        if (userId == null) {
+            throw new InvalidNotificationException(
+                    "User ID is required"
+            );
+        }
 
         List<Notification> notifications =
                 notificationRepository.findByUserId(userId);
@@ -68,14 +108,25 @@ public class NotificationService {
         return notificationRepository.saveAll(notifications);
     }
 
-
     public Notification createNotification(
             Notification notification) {
+
+        if (notification == null) {
+            throw new InvalidNotificationException(
+                    "Notification data is required"
+            );
+        }
+
+        if (notification.getUser() == null) {
+            throw new InvalidNotificationException(
+                    "User is required"
+            );
+        }
 
         if (notification.getMessage() == null ||
                 notification.getMessage().trim().isEmpty()) {
 
-            throw new RuntimeException(
+            throw new InvalidNotificationException(
                     "Notification message is required"
             );
         }
@@ -83,7 +134,7 @@ public class NotificationService {
         if (notification.getType() == null ||
                 notification.getType().trim().isEmpty()) {
 
-            throw new RuntimeException(
+            throw new InvalidNotificationException(
                     "Notification type is required"
             );
         }
