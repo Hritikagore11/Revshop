@@ -1,6 +1,8 @@
 package revshop.product_service.product.service;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import revshop.product_service.product.model.Category;
 import revshop.product_service.product.repository.CategoryRepository;
 
@@ -20,11 +22,17 @@ public class CategoryService {
         if (category.getName() == null ||
                 category.getName().trim().isEmpty()) {
 
-            throw new RuntimeException("Category name is required");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Category name is required"
+            );
         }
 
         if (categoryRepository.existsByNameIgnoreCase(category.getName())) {
-            throw new RuntimeException("Category already exists");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Category already exists"
+            );
         }
 
         category.setName(category.getName().trim());
@@ -39,19 +47,28 @@ public class CategoryService {
     public Category getCategoryById(Long id) {
         return categoryRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Category not found"));
+         new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Category not found"
+        ));
     }
 
     public Category updateCategory(Long id, Category updatedCategory) {
 
         Category existingCategory = categoryRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Category not found"));
+         new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Category not found"
+        ));
 
         if (updatedCategory.getName() == null ||
                 updatedCategory.getName().trim().isEmpty()) {
 
-            throw new RuntimeException("Category name is required");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Category name is required"
+            );
         }
 
         existingCategory.setName(updatedCategory.getName().trim());
@@ -62,7 +79,10 @@ public class CategoryService {
     public void deleteCategory(Long id) {
 
         if (!categoryRepository.existsById(id)) {
-            throw new RuntimeException("Category not found");
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Category not found"
+            );
         }
 
         categoryRepository.deleteById(id);

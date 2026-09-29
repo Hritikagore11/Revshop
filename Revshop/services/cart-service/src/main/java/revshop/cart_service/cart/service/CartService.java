@@ -4,12 +4,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 
 import revshop.cart_service.cart.model.Cart;
 import revshop.cart_service.cart.model.CartItem;
@@ -42,14 +44,14 @@ public class CartService {
         this.restTemplate = restTemplate;
     }
 
-
     public Long getAuthenticatedUserId(
             Authentication authentication) {
 
         if (authentication == null ||
                 authentication.getDetails() == null) {
 
-            throw new RuntimeException(
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
                     "User is not authenticated"
             );
         }
@@ -58,14 +60,14 @@ public class CartService {
 
         if (!(details instanceof Long userId)) {
 
-            throw new RuntimeException(
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
                     "Unable to identify authenticated user"
             );
         }
 
         return userId;
     }
-
 
     @Transactional
     public CartItem addItem(
@@ -75,25 +77,27 @@ public class CartService {
 
         if (productId == null) {
 
-            throw new RuntimeException(
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Product ID is required"
             );
         }
 
         if (quantity == null || quantity <= 0) {
 
-            throw new RuntimeException(
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Quantity must be greater than zero"
             );
         }
 
-        // Get product from product-service
         Product product = getProduct(productId);
 
         if (product.getQuantity() == null ||
                 product.getQuantity() <= 0) {
 
-            throw new RuntimeException(
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Product is out of stock"
             );
         }
@@ -124,10 +128,10 @@ public class CartService {
         int newQuantity =
                 existingQuantity + quantity;
 
-        // Check total requested quantity
         if (newQuantity > product.getQuantity()) {
 
-            throw new RuntimeException(
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Insufficient stock. Available stock: "
                             + product.getQuantity()
             );
@@ -150,7 +154,6 @@ public class CartService {
                 )
                 .orElseGet(List::of);
     }
-
 
     public Double getCartTotal(
             Long userId,
@@ -200,7 +203,8 @@ public class CartService {
 
         if (quantity == null || quantity <= 0) {
 
-            throw new RuntimeException(
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Quantity must be greater than zero"
             );
         }
@@ -219,14 +223,16 @@ public class CartService {
         if (product.getQuantity() == null ||
                 product.getQuantity() <= 0) {
 
-            throw new RuntimeException(
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Product is out of stock"
             );
         }
 
         if (quantity > product.getQuantity()) {
 
-            throw new RuntimeException(
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Insufficient stock. Available stock: "
                             + product.getQuantity()
             );
@@ -236,7 +242,6 @@ public class CartService {
 
         return cartItemRepository.save(item);
     }
-
 
     @Transactional
     public void removeItem(
@@ -251,7 +256,6 @@ public class CartService {
 
         cartItemRepository.delete(item);
     }
-
 
     @Transactional
     public void clearCart(Long userId) {
@@ -270,7 +274,6 @@ public class CartService {
                 });
     }
 
-
     private CartItem getOwnedCartItem(
             Long itemId,
             Long userId) {
@@ -279,7 +282,8 @@ public class CartService {
                 cartItemRepository
                         .findById(itemId)
                         .orElseThrow(() ->
-                                new RuntimeException(
+                                new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND,
                                         "Cart item not found"
                                 ));
 
@@ -288,7 +292,8 @@ public class CartService {
                         item.getCart().getUserId()
                 )) {
 
-            throw new RuntimeException(
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
                     "You are not authorized to modify this cart item"
             );
         }
@@ -322,7 +327,6 @@ public class CartService {
                 productInternalKey
         );
 
-
         if (authorizationHeader != null &&
                 !authorizationHeader.isBlank()) {
 
@@ -350,7 +354,8 @@ public class CartService {
 
             if (product == null) {
 
-                throw new RuntimeException(
+                throw new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
                         "Product not found: " +
                                 productId
                 );
@@ -358,9 +363,14 @@ public class CartService {
 
             return product;
 
+        } catch (ResponseStatusException e) {
+
+            throw e;
+
         } catch (RestClientException e) {
 
-            throw new RuntimeException(
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
                     "Unable to fetch product: " +
                             productId
             );

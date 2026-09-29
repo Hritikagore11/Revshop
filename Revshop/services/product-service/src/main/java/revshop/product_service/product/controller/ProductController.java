@@ -3,6 +3,7 @@ package revshop.product_service.product.controller;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -48,6 +49,17 @@ public class ProductController {
         );
     }
 
+    @GetMapping("/paged")
+    @PreAuthorize("hasAnyRole('BUYER', 'SELLER')")
+    public ResponseEntity<Page<Product>> getProductsPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size) {
+
+        return ResponseEntity.ok(
+                productService.getProductsPage(page, size)
+        );
+    }
+
     @GetMapping("/search")
     @PreAuthorize("hasAnyRole('BUYER', 'SELLER')")
     public ResponseEntity<List<Product>> searchProducts(
@@ -58,6 +70,7 @@ public class ProductController {
     }
 
     @GetMapping("/category")
+    @PreAuthorize("hasAnyRole('BUYER', 'SELLER')")
     public ResponseEntity<List<Product>> getProductsByCategory(
             @RequestParam String category) {
 
@@ -241,8 +254,8 @@ public class ProductController {
                     required = false
             ) String key) {
 
-        if (!internalKey.equals(key)) {
-            return ResponseEntity.status(403).build();
+        if (key == null || !key.equals(internalKey)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         if (quantity == null || quantity <= 0) {
             return ResponseEntity.badRequest().build();

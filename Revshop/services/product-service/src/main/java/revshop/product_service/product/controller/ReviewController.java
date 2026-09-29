@@ -49,6 +49,7 @@ public class ReviewController {
     }
 
     @GetMapping("/{productId}/reviews")
+    @PreAuthorize("hasAnyRole('BUYER', 'SELLER')")
     public ResponseEntity<List<Review>> getReviews(
             @PathVariable Long productId) {
 

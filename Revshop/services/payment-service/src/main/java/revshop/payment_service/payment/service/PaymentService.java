@@ -21,7 +21,9 @@ public class PaymentService {
             Double amount) {
 
         if (paymentRepository.findByOrderId(orderId).isPresent()) {
-            throw new RuntimeException("Payment already exists for this order");
+            throw new RuntimeException(
+                    "Payment already exists for this order"
+            );
         }
 
         Payment payment = new Payment();
@@ -30,7 +32,9 @@ public class PaymentService {
         payment.setPaymentMethod(paymentMethod);
         payment.setAmount(amount);
         payment.setStatus("SUCCESS");
-        payment.setTransactionId(UUID.randomUUID().toString());
+        payment.setTransactionId(
+                UUID.randomUUID().toString()
+        );
 
         return paymentRepository.save(payment);
     }
@@ -39,29 +43,42 @@ public class PaymentService {
 
         return paymentRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Payment not found"));
+                        new RuntimeException(
+                                "Payment not found"
+                        ));
     }
+
     public Payment getPaymentByOrderId(Long orderId) {
 
         return paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() ->
-                        new RuntimeException("Payment not found for this order"));
+                        new RuntimeException(
+                                "Payment not found for this order"
+                        ));
     }
 
     public String getPaymentStatus(Long orderId) {
 
-        Payment payment = paymentRepository.findByOrderId(orderId)
-                .orElseThrow(() ->
-                        new RuntimeException("Payment not found for this order"));
+        Payment payment =
+                paymentRepository.findByOrderId(orderId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Payment not found for this order"
+                                ));
 
         return payment.getStatus();
     }
 
-    public Payment updatePaymentStatus(Long orderId, String status) {
+    public Payment updatePaymentStatus(
+            Long orderId,
+            String status) {
 
-        Payment payment = paymentRepository.findByOrderId(orderId)
-                .orElseThrow(() ->
-                        new RuntimeException("Payment not found for this order"));
+        Payment payment =
+                paymentRepository.findByOrderId(orderId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Payment not found for this order"
+                                ));
 
         payment.setStatus(status);
 

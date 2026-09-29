@@ -10,7 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
-
+import revshop.order_service.client.ProductClient;
 import revshop.order_service.order.dto.CartItemResponse;
 import revshop.order_service.order.dto.PaymentResponse;
 import revshop.order_service.order.dto.ProductResponse;
@@ -20,7 +20,6 @@ import revshop.order_service.order.repository.OrderItemRepository;
 import revshop.order_service.order.repository.OrderRepository;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +30,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final RestTemplate restTemplate;
+    private final ProductClient productClient;
 
     @Value("${cart.service.url}")
     private String cartServiceUrl;
@@ -50,11 +50,13 @@ public class OrderService {
     public OrderService(
             OrderRepository orderRepository,
             OrderItemRepository orderItemRepository,
-            RestTemplate restTemplate) {
+            RestTemplate restTemplate,
+            ProductClient productClient) {
 
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.restTemplate = restTemplate;
+        this.productClient = productClient;
     }
 
     public Long getAuthenticatedUserId(Authentication authentication) {
@@ -106,7 +108,6 @@ public class OrderService {
             );
         }
 
-
         headers.set(
                 "X-Internal-Key",
                 productInternalKey
@@ -114,7 +115,6 @@ public class OrderService {
 
         HttpEntity<Void> entity =
                 new HttpEntity<>(headers);
-
 
         ResponseEntity<CartItemResponse[]> cartResponse =
                 restTemplate.exchange(
@@ -133,30 +133,21 @@ public class OrderService {
             throw new RuntimeException("Cart is empty");
         }
 
-
         Map<Long, ProductResponse> products =
                 new HashMap<>();
 
         double totalAmount = 0.0;
-
 
         for (CartItemResponse cartItem : cartItems) {
 
             Long productId =
                     cartItem.getProductId();
 
-            ResponseEntity<ProductResponse> productResponse =
-                    restTemplate.exchange(
-                            productServiceUrl +
-                                    "/api/products/internal/" +
-                                    productId,
-                            HttpMethod.GET,
-                            entity,
-                            ProductResponse.class
-                    );
-
             ProductResponse product =
-                    productResponse.getBody();
+                    productClient.getProduct(
+                            productId,
+                            productInternalKey
+                    );
 
             if (product == null) {
 
@@ -184,13 +175,27 @@ public class OrderService {
                 );
             }
 
-            products.put(productId, product);
+            products.put(
+                    productId,
+                    product
+            );
+
+            double price =
+                    product.getPrice();
+
+            double discount =
+                    product.getDiscount() == null
+                            ? 0.0
+                            : product.getDiscount();
+
+            double finalPrice =
+                    price -
+                            (price * discount / 100.0);
 
             totalAmount +=
-                    product.getPrice()
-                            * cartItem.getQuantity();
+                    finalPrice *
+                            cartItem.getQuantity();
         }
-
 
         Order order = new Order();
 
@@ -199,8 +204,8 @@ public class OrderService {
         order.setStatus("PLACED");
         order.setCreatedAt(LocalDateTime.now());
 
-        order = orderRepository.save(order);
-
+        order =
+                orderRepository.save(order);
 
         for (CartItemResponse cartItem : cartItems) {
 
@@ -222,20 +227,29 @@ public class OrderService {
                     cartItem.getQuantity()
             );
 
-            orderItem.setPrice(
-                    product.getPrice()
+            double price =
+                    product.getPrice();
+
+            double discount =
+                    product.getDiscount() == null
+                            ? 0.0
+                            : product.getDiscount();
+
+            double finalPrice =
+                    price -
+                            (price * discount / 100.0);
+
+            orderItem.setPrice(finalPrice);
+
+            orderItemRepository.save(
+                    orderItem
             );
-
-            orderItemRepository.save(orderItem);
         }
-
-
-        List<Long> reducedProducts =
-                new ArrayList<>();
 
         try {
 
-            for (CartItemResponse cartItem : cartItems) {
+            for (CartItemResponse cartItem :
+                    cartItems) {
 
                 ProductResponse product =
                         products.get(
@@ -255,14 +269,9 @@ public class OrderService {
 
                         ProductResponse.class
                 );
-
-                reducedProducts.add(
-                        product.getId()
-                );
             }
 
         } catch (Exception e) {
-
 
             throw new RuntimeException(
                     "Unable to reduce product stock. " +
@@ -270,7 +279,6 @@ public class OrderService {
                     e
             );
         }
-
 
         HttpHeaders paymentHeaders =
                 new HttpHeaders();
@@ -285,7 +293,9 @@ public class OrderService {
         }
 
         HttpEntity<Void> paymentEntity =
-                new HttpEntity<>(paymentHeaders);
+                new HttpEntity<>(
+                        paymentHeaders
+                );
 
         String paymentUrl =
                 paymentServiceUrl +
@@ -296,7 +306,8 @@ public class OrderService {
                         "&amount=" +
                         totalAmount;
 
-        ResponseEntity<PaymentResponse> paymentResponse;
+        ResponseEntity<PaymentResponse>
+                paymentResponse;
 
         try {
 
@@ -310,10 +321,9 @@ public class OrderService {
 
         } catch (Exception e) {
 
-            /*
-             * Payment service failed.
-             */
-            order.setStatus("PAYMENT_FAILED");
+            order.setStatus(
+                    "PAYMENT_FAILED"
+            );
 
             orderRepository.save(order);
 
@@ -327,9 +337,12 @@ public class OrderService {
                 !"SUCCESS".equalsIgnoreCase(
                         paymentResponse
                                 .getBody()
-                                .getStatus())) {
+                                .getStatus()
+                )) {
 
-            order.setStatus("PAYMENT_FAILED");
+            order.setStatus(
+                    "PAYMENT_FAILED"
+            );
 
             orderRepository.save(order);
 
@@ -338,19 +351,16 @@ public class OrderService {
             );
         }
 
-        /*
-         * ------------------------------------------------
-         * 7. CLEAR CART
-         * ------------------------------------------------
-         */
-
         try {
 
             restTemplate.exchange(
                     cartServiceUrl +
                             "/cart/clear",
+
                     HttpMethod.DELETE,
+
                     entity,
+
                     Void.class
             );
 
@@ -360,7 +370,6 @@ public class OrderService {
                     "Warning: Cart could not be cleared"
             );
         }
-
 
         try {
 
@@ -393,7 +402,8 @@ public class OrderService {
                             order.getId()
                     );
 
-            HttpEntity<String> notificationEntity =
+            HttpEntity<String>
+                    notificationEntity =
                     new HttpEntity<>(
                             notificationJson,
                             notificationHeaders
@@ -402,8 +412,11 @@ public class OrderService {
             restTemplate.exchange(
                     notificationServiceUrl +
                             "/notifications",
+
                     HttpMethod.POST,
+
                     notificationEntity,
+
                     Void.class
             );
 
@@ -483,23 +496,33 @@ public class OrderService {
             String status,
             Authentication authentication) {
 
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() ->
-                        new RuntimeException("Order not found"));
+        Order order =
+                orderRepository.findById(orderId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Order not found"
+                                ));
 
-        Long userId = getAuthenticatedUserId(authentication);
+        Long userId =
+                getAuthenticatedUserId(authentication);
 
-        String role = authentication.getAuthorities()
-                .stream()
-                .map(authority -> authority.getAuthority())
-                .filter(authority -> authority.startsWith("ROLE_"))
-                .map(authority -> authority.substring(5))
-                .findFirst()
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Unable to determine user role"));
+        String role =
+                authentication.getAuthorities()
+                        .stream()
+                        .map(authority ->
+                                authority.getAuthority())
+                        .filter(authority ->
+                                authority.startsWith("ROLE_"))
+                        .map(authority ->
+                                authority.substring(5))
+                        .findFirst()
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Unable to determine user role"
+                                ));
 
-        String newStatus = status.toUpperCase();
+        String newStatus =
+                status.toUpperCase();
 
         if (!newStatus.equals("PLACED") &&
                 !newStatus.equals("CONFIRMED") &&
@@ -508,7 +531,8 @@ public class OrderService {
                 !newStatus.equals("CANCELLED")) {
 
             throw new RuntimeException(
-                    "Invalid order status: " + status);
+                    "Invalid order status: " + status
+            );
         }
 
         if ("BUYER".equalsIgnoreCase(role)) {
@@ -516,23 +540,25 @@ public class OrderService {
             if (!order.getUserId().equals(userId)) {
 
                 throw new RuntimeException(
-                        "You are not authorized to update this order");
+                        "You are not authorized to update this order"
+                );
             }
 
             if (!"CANCELLED".equals(newStatus)) {
 
                 throw new RuntimeException(
-                        "Buyer can only cancel an order");
+                        "Buyer can only cancel an order"
+                );
             }
 
             if ("DELIVERED".equalsIgnoreCase(order.getStatus()) ||
                     "CANCELLED".equalsIgnoreCase(order.getStatus())) {
 
                 throw new RuntimeException(
-                        "This order cannot be cancelled");
+                        "This order cannot be cancelled"
+                );
             }
 
-            // Restore stock
             restoreStockForOrder(order);
 
             order.setStatus("CANCELLED");
@@ -540,47 +566,47 @@ public class OrderService {
             return orderRepository.save(order);
         }
 
-
         if ("SELLER".equalsIgnoreCase(role)) {
 
             if ("CANCELLED".equals(newStatus)) {
 
                 throw new RuntimeException(
-                        "Seller cannot cancel an order");
+                        "Seller cannot cancel an order"
+                );
             }
 
             String currentStatus =
                     order.getStatus().toUpperCase();
 
-            // PLACED -> CONFIRMED
             if ("PLACED".equals(currentStatus) &&
                     !"CONFIRMED".equals(newStatus)) {
 
                 throw new RuntimeException(
-                        "PLACED order can only be CONFIRMED");
+                        "PLACED order can only be CONFIRMED"
+                );
             }
 
-            // CONFIRMED -> SHIPPED
             if ("CONFIRMED".equals(currentStatus) &&
                     !"SHIPPED".equals(newStatus)) {
 
                 throw new RuntimeException(
-                        "CONFIRMED order can only be SHIPPED");
+                        "CONFIRMED order can only be SHIPPED"
+                );
             }
 
-            // SHIPPED -> DELIVERED
             if ("SHIPPED".equals(currentStatus) &&
                     !"DELIVERED".equals(newStatus)) {
 
                 throw new RuntimeException(
-                        "SHIPPED order can only be DELIVERED");
+                        "SHIPPED order can only be DELIVERED"
+                );
             }
 
-            // DELIVERED cannot change
             if ("DELIVERED".equals(currentStatus)) {
 
                 throw new RuntimeException(
-                        "Delivered order cannot be updated");
+                        "Delivered order cannot be updated"
+                );
             }
 
             order.setStatus(newStatus);
@@ -589,7 +615,8 @@ public class OrderService {
         }
 
         throw new RuntimeException(
-                "You are not authorized to update order status");
+                "You are not authorized to update order status"
+        );
     }
 
     @Transactional
@@ -604,7 +631,11 @@ public class OrderService {
 
         for (OrderItem item : orderItems) {
 
-            HttpHeaders headers = new HttpHeaders();
+            Long productId = item.getProductId();
+            Integer quantity = item.getQuantity();
+
+            HttpHeaders headers =
+                    new HttpHeaders();
 
             headers.set(
                     "X-Internal-Key",
@@ -617,16 +648,27 @@ public class OrderService {
             String url =
                     productServiceUrl +
                             "/api/products/internal/" +
-                            item.getProductId() +
-                            "/stock/restore?quantity=" +
-                            item.getQuantity();
+                            productId +
+                            "/restore-stock?quantity=" +
+                            quantity;
 
-            restTemplate.exchange(
-                    url,
-                    HttpMethod.PUT,
-                    entity,
-                    Void.class
-            );
+            try {
+
+                restTemplate.exchange(
+                        url,
+                        HttpMethod.PUT,
+                        entity,
+                        ProductResponse.class
+                );
+
+            } catch (Exception e) {
+
+                throw new RuntimeException(
+                        "Unable to restore stock for product: " +
+                                productId,
+                        e
+                );
+            }
         }
     }
 }

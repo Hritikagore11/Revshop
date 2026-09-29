@@ -1,8 +1,10 @@
 package revshop.product_service.product.service;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
+import org.springframework.web.server.ResponseStatusException;
 import revshop.product_service.product.model.Review;
 import revshop.product_service.product.repository.ReviewRepository;
 
@@ -17,17 +19,14 @@ public class ReviewService {
         this.reviewRepository = reviewRepository;
     }
 
-    // =========================
-    // GET AUTHENTICATED USER ID
-    // =========================
-
     public Long getAuthenticatedUserId(
             Authentication authentication) {
 
         if (authentication == null ||
                 authentication.getDetails() == null) {
 
-            throw new RuntimeException(
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
                     "User is not authenticated"
             );
         }
@@ -36,7 +35,8 @@ public class ReviewService {
 
         if (!(details instanceof Long userId)) {
 
-            throw new RuntimeException(
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
                     "Unable to identify authenticated user"
             );
         }
@@ -44,9 +44,6 @@ public class ReviewService {
         return userId;
     }
 
-    // =========================
-    // ADD REVIEW
-    // =========================
 
     public Review addReview(
             Long productId,
@@ -72,7 +69,8 @@ public class ReviewService {
                 productId,
                 buyerId)) {
 
-            throw new RuntimeException(
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
                     "Buyer has already reviewed this product"
             );
         }
@@ -87,9 +85,6 @@ public class ReviewService {
         return reviewRepository.save(review);
     }
 
-    // =========================
-    // GET REVIEWS
-    // =========================
 
     public List<Review> getReviewsByProduct(
             Long productId) {
@@ -97,9 +92,6 @@ public class ReviewService {
         return reviewRepository.findByProductId(productId);
     }
 
-    // =========================
-    // UPDATE REVIEW
-    // =========================
 
     public Review updateReview(
             Long reviewId,
@@ -112,13 +104,15 @@ public class ReviewService {
         Review review =
                 reviewRepository.findById(reviewId)
                         .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Review not found"
-                                ));
+         new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Review not found"
+         ));
 
         if (!review.getBuyerId().equals(buyerId)) {
 
-            throw new RuntimeException(
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
                     "You are not authorized to update this review"
             );
         }
@@ -129,10 +123,6 @@ public class ReviewService {
         return reviewRepository.save(review);
     }
 
-    // =========================
-    // DELETE REVIEW
-    // =========================
-
     public void deleteReview(
             Long reviewId,
             Long buyerId) {
@@ -140,29 +130,29 @@ public class ReviewService {
         Review review =
                 reviewRepository.findById(reviewId)
                         .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Review not found"
-                                ));
+        new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Review not found"
+        ));
 
         if (!review.getBuyerId().equals(buyerId)) {
 
-            throw new RuntimeException(
-                    "You are not authorized to delete this review"
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You are not authorized to update this review"
             );
         }
 
         reviewRepository.delete(review);
     }
 
-    // =========================
-    // RATING VALIDATION
-    // =========================
 
     private void validateRating(int rating) {
 
         if (rating < 1 || rating > 5) {
 
-            throw new RuntimeException(
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Rating must be between 1 and 5"
             );
         }

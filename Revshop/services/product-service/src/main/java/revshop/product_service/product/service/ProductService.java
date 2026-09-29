@@ -5,6 +5,9 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import revshop.product_service.product.model.Product;
 import revshop.product_service.product.repository.ProductRepository;
@@ -47,6 +50,31 @@ public class ProductService {
 
     public List<Product> getAllProducts() {
         return productRepository.findAll();
+    }
+
+    public Page<Product> getProductsPage(int page, int size) {
+
+        if (page < 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Page number cannot be negative"
+            );
+        }
+
+        if (size < 1 || size > 50) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Page size must be between 1 and 50"
+            );
+        }
+
+        return productRepository.findAll(
+                PageRequest.of(
+                        page,
+                        size,
+                        Sort.by(Sort.Direction.ASC, "id")
+                )
+        );
     }
 
     public List<Product> searchProducts(String keyword) {
@@ -103,6 +131,7 @@ public class ProductService {
 
         existingProduct.setName(product.getName());
         existingProduct.setDescription(product.getDescription());
+        existingProduct.setImageUrl(product.getImageUrl());
         existingProduct.setPrice(product.getPrice());
         existingProduct.setDiscount(product.getDiscount());
         existingProduct.setQuantity(product.getQuantity());
@@ -424,8 +453,9 @@ public class ProductService {
                                 ));
 
         if (quantity == null || quantity <= 0) {
-            throw new RuntimeException(
-                    "Quantity must be greater than zero"
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Product not found: " + productId
             );
         }
 
