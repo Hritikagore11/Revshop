@@ -1,0 +1,162 @@
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: revshop-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: revshop_db
+    ports:
+      - "3307:3306"
+    networks:
+      - revshop-net
+
+  service-discovery:
+    image: revshop-service-discovery:latest
+    container_name: service-discovery
+    ports:
+      - "8761:8761"
+    networks:
+      - revshop-net
+
+  config-server:
+    image: revshop-config-server:latest
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    depends_on:
+      - service-discovery
+    networks:
+      - revshop-net
+
+  user-service:
+    image: revshop-user-service:latest
+    container_name: user-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mysql
+      - service-discovery
+      - config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      CONFIG_SERVER_URL: http://config-server:8888
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - revshop-net
+
+  product-service:
+    image: revshop-product-service:latest
+    container_name: product-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - mysql
+      - service-discovery
+      - config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      CONFIG_SERVER_URL: http://config-server:8888
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - revshop-net
+
+  cart-service:
+    image: revshop-cart-service:latest
+    container_name: cart-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      - mysql
+      - service-discovery
+      - config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      CONFIG_SERVER_URL: http://config-server:8888
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - revshop-net
+
+  order-service:
+    image: revshop-order-service:latest
+    container_name: order-service
+    ports:
+      - "8084:8084"
+    depends_on:
+      - mysql
+      - service-discovery
+      - config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      CONFIG_SERVER_URL: http://config-server:8888
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - revshop-net
+
+  payment-service:
+    image: revshop-payment-service:latest
+    container_name: payment-service
+    ports:
+      - "8085:8085"
+    depends_on:
+      - mysql
+      - service-discovery
+      - config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      CONFIG_SERVER_URL: http://config-server:8888
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - revshop-net
+
+  notification-service:
+    image: revshop-notification-service:latest
+    container_name: notification-service
+    ports:
+      - "8086:8086"
+    depends_on:
+      - mysql
+      - service-discovery
+      - config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      CONFIG_SERVER_URL: http://config-server:8888
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - revshop-net
+
+  api-gateway:
+    image: revshop-api-gateway:latest
+    container_name: api-gateway
+    ports:
+      - "9000:9000"
+    depends_on:
+      - service-discovery
+      - config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      CONFIG_SERVER_URL: http://config-server:8888
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+    networks:
+      - revshop-net
+
+  revshop-frontend:
+    build:
+      context: ./revshop-web
+    container_name: revshop-frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - revshop-net
+
+networks:
+  revshop-net:
+    driver: bridge
